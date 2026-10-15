@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="si">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>යතුරු ක්‍රීඩාව</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;600;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: one centred game card, quiz-show board; answer tiles in a 2x2 grid that stacks on phones */
+:root{
+  --bg:#13162b; --panel:#1d2140; --line:#2f3563; --fg:#eef0ff; --muted:#a3a8d6;
+  --a:#f2a93b; --b:#2bb5a6; --c:#e9625a; --d:#8b74e8;
+  --ok:#3fcf7f; --bad:#ef5b5b;
+  --sans:"Noto Sans Sinhala","Iskoola Pota",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:16px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.brand{font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase}
+.score{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--fg);font-size:15px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px;display:flex;flex-direction:column;gap:16px}
+h1{font-size:clamp(26px,5vw,38px);line-height:1.25;margin:0;font-weight:800;text-wrap:balance}
+h2{font-size:clamp(18px,3.4vw,22px);line-height:1.45;margin:0;font-weight:600;text-wrap:balance}
+p{margin:0}
+.muted{color:var(--muted)}
+.key{font-family:var(--mono);font-size:.92em;background:#ffffff12;padding:1px 6px;border-radius:5px}
+input{width:100%;font:inherit;padding:12px 14px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--fg)}
+button{font:inherit;cursor:pointer;border:0;border-radius:10px}
+.primary{background:var(--a);color:#1a1300;font-weight:800;padding:13px 22px;align-self:flex-start}
+.primary:disabled{opacity:.4;cursor:not-allowed}
+button:focus-visible,input:focus-visible{outline:3px solid var(--fg);outline-offset:2px}
+.timer{height:8px;background:var(--line);border-radius:99px;overflow:hidden}
+.timer i{display:block;height:100%;background:var(--b);width:100%;transition:width .2s linear}
+.qmeta{display:flex;justify-content:space-between;font-family:var(--mono);font-size:13px;color:var(--muted)}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+.tbl .tn{font-family:var(--mono);font-size:12px;padding:6px 10px;color:var(--muted);border-bottom:1px solid var(--line)}
+table{border-collapse:collapse;width:100%;font-family:var(--mono);font-size:13px}
+th,td{padding:6px 10px;text-align:left;white-space:nowrap;border-bottom:1px solid #ffffff0d}
+th{color:var(--a);font-weight:700}
+td.hl{background:#e9625a33}
+.answers{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:520px){.answers{grid-template-columns:1fr}}
+.ans{display:flex;gap:12px;align-items:center;text-align:left;padding:14px 16px;color:#fff;font-weight:600;min-height:64px;line-height:1.4}
+.ans .sh{font-size:20px;flex:none;width:24px;text-align:center}
+.ans span{min-width:0}
+.ans:nth-child(1){background:#b8771a}.ans:nth-child(2){background:#1d8679}.ans:nth-child(3){background:#b8433d}.ans:nth-child(4){background:#5f4bb8}
+.ans:disabled{cursor:default}
+.ans.dim{opacity:.35}
+.ans.right{outline:3px solid var(--ok);outline-offset:2px;opacity:1}
+.ans.wrong{outline:3px solid var(--bad);outline-offset:2px}
+.feedback{border-radius:10px;padding:14px 16px;border:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
+.feedback b{font-size:17px}
+.feedback.ok b{color:var(--ok)} .feedback.no b{color:var(--bad)}
+.big{font-family:var(--mono);font-size:clamp(44px,10vw,72px);font-weight:700;line-height:1;font-variant-numeric:tabular-nums;color:var(--a)}
+.result{font-family:var(--mono);font-size:13px;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px;white-space:pre-wrap;user-select:all}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.ghost{background:transparent;border:1px solid var(--line);color:var(--fg);padding:12px 18px}
+ol.review{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px;font-size:14px}
+ol.review .x{color:var(--bad)} ol.review .v{color:var(--ok)}
+@media (prefers-reduced-motion:reduce){.timer i{transition:none}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="top"><span class="brand">ICT · පාඩම 09 · දත්ත සමුදාය</span><span class="score" id="scoreTop" hidden></span></div>
+  <div class="card" id="app"></div>
+  <p class="muted" style="font-size:13px">Nilupul Weerasinghe · Online O/L ICT · 076 135 5516</p>
+</div>
+
+<script>
+const SH=["▲","◆","●","■"];
+const Q=[
+ {q:"STUDENT වගුවේ ප්‍රාථමික යතුර (Primary Key) ලෙස වඩාත් සුදුසු කුමක්ද?",
+  t:{n:"STUDENT",c:["Admission_No","Name","DOB"],r:[["1426","Kavindu","2005.05.23"],["1427","Meenadevi","2005.08.12"],["1428","Kavindu","2005.02.07"]]},
+  o:["Name","Admission_No","DOB","Name + DOB"],a:1,
+  e:"ඇතුළත් වීමේ අංකය හිස් නැහැ, නැවත එන්නෙත් නැහැ. NIC අංකය වගේ."},
+ {q:"ඉහත වගුවේ “Kavindu” නමින් ළමයි දෙන්නෙක් ඉන්නවා. Name ප්‍රාථමික යතුර කරන්න බැරි ඇයි?",
+  o:["Name හිස් විය හැකි නිසා","Name අනුපිටපත් (duplicate) විය හැකි නිසා","Name, Text වර්ගයේ නිසා","Name දිග වැඩි නිසා"],a:1,
+  e:"PK නීති 2: ① හිස් නොවිය යුතුයි ② අනුපිටපත් නොවිය යුතුයි. නම් නැවත නැවත එනවා."},
+ {q:"සිනමා ශාලාවක එකම ආසනය (B12) දවසේ දර්ශන කිහිපයකට වෙන් කළ හැකියි. මෙම වගුවේ PK කුමක්ද?",
+  t:{n:"BOOKING",c:["Row","Seat_No","Show_Time","Name"],r:[["B","12","3.00 pm","Saman"],["B","12","7.00 pm","Nimal"],["C","12","3.00 pm","Amal"]]},
+  o:["Seat_No","Row + Seat_No","Row + Seat_No + Show_Time","Name"],a:2,
+  e:"B තනියම ආසනයක් නොවේ, 12 තනියමත් නොවේ. B12 + වේලාව එකට = අනන්‍යයි. මෙය සංයුක්ත යතුරකි (Composite Key)."},
+ {q:"LIBRARY_LOAN වගුවේ ප්‍රාථමික යතුර කුමක්ද?",
+  t:{n:"LIBRARY_LOAN",c:["Student_No","Book_No","Borrowed_Date","Return_Date"],r:[["101","2222","2/9/2014","16/9/2014"],["100","3333","3/9/2014","17/9/2014"],["101","1111","3/9/2014","17/9/2014"],["100","3333","4/9/2014","18/9/2014"]],hl:[[1,0],[1,1],[3,0],[3,1]]},
+  o:["Student_No + Book_No","Book_No","Student_No + Book_No + Borrowed_Date","Return_Date"],a:2,
+  e:"100 / 3333 දෙපාරක් එනවා (එකම ළමයා එකම පොත දෙවතාවක්). දිනයත් එකතු කළාම තමයි අනන්‍ය වෙන්නේ."},
+ {q:"STUDENT වගුවේ PK = Admission_No. පහත MARKS වගුවේ ආගන්තුක යතුර (Foreign Key) කුමක්ද?",
+  t:{n:"MARKS",c:["Admission_No","Marks","Term","Year"],r:[["1426","69","1","2014"],["1426","72","2","2014"]]},
+  o:["Marks","MARKS වගුවේ Admission_No","Term","Year"],a:1,
+  e:"ගාස්තු රිසිට් එකේ ළමයාගේ අංකය විතරයි ලියන්නේ. විස්තර බලන්න ලේඛනයට යනවා. වෙනත් වගුවක PK = මෙතන FK."},
+ {q:"දුරකථන අංකය 0112785123 තැන්පත් කිරීමට වඩාත් සුදුසු දත්ත ප්‍රරූපය?",
+  o:["Number (Integer)","Currency","Text","Boolean"],a:2,
+  e:"දුරකථන අංකයෙන් ගණන් හදන්නේ නැහැ. Number දැම්මොත් මුලින් ඇති 0 නැති වෙනවා. ID, NIC, C001 → Text."},
+ {q:"එක් පාරිභෝගිකයෙකුට මීටර කිහිපයක් තිබිය හැකියි. එක මීටරයක් එක් පාරිභෝගිකයෙකුට පමණයි. CUSTOMER — METER සම්බන්ධතාවය?",
+  o:["එකට-එක (1:1)","එකට-බහු (1:M)","බහු-බහු (M:M)","සම්බන්ධතාවයක් නැත"],a:1,
+  e:"අම්මා එක්කෙනයි, දරුවෝ කිහිප දෙනෙක් වගේ. 1 පැත්ත CUSTOMER, බහු පැත්ත METER."},
+ {q:"ළමයෙක් ක්‍රීඩා කිහිපයක්, ක්‍රීඩාවකට ළමයි කිහිප දෙනෙක්. මැද වගුව STUDENT_SPORT(Admission_No, Sport_No, Team) හි PK කුමක්ද?",
+  o:["Admission_No","Sport_No","Admission_No + Sport_No","Team"],a:2,
+  e:"බහු-බහු → මැද වගුවක්. මැද වගුවේ PK = FK දෙකේ එකතුව. ටියුෂන් පන්තියේ පැමිණීමේ ලැයිස්තුව වගේ."},
+ {q:"සෑම වාහනයකටම නිශ්චිත කුලී ගාස්තුවක් (Rental_rate) ඇත. එම ක්ෂේත්‍රය එකතු කළ යුත්තේ කුමන වගුවටද?",
+  o:["CUSTOMER","VEHICLE","RENTAL","නව වගුවක්"],a:1,
+  e:"“මේ අගය කාගේ දේපළද?” ගාස්තුව වාහනයට අයිතියි, හැම කුලියකටම එකමයි → VEHICLE."},
+ {q:"කුලියට දුන් වාහනය නැවත භාර දුන් දිනය (Return_date) එකතු කළ යුත්තේ කුමන වගුවටද?",
+  o:["CUSTOMER","VEHICLE","RENTAL","නව වගුවක්"],a:2,
+  e:"භාර දෙන දිනය එක් එක් කුලියට ගැනීමට අයිතියි. ඒ නිසා RENTAL."},
+ {q:"STUDENT වගුවේ 1999 අංකයෙන් ළමයෙක් නැත. MARKS(1999, 55, 1, 2014) රෙකෝඩය ඇතුළත් කළ හැකිද?",
+  o:["ඔව්, PK අනුපිටපත් නැති නිසා","නැහැ, FK අගය (1999) STUDENT වගුවේ නැති නිසා","ඔව්, Marks 100ට අඩු නිසා","නැහැ, Year එක පරණ නිසා"],a:1,
+  e:"පුස්තකාලය නොදන්න කෙනෙකුට පොත් දෙන්නේ නැහැ. FK අගය ප්‍රධාන වගුවේ කලින්ම තිබිය යුතුයි."},
+ {q:"පන්ති භාරකරු මාසික ලකුණු ලැයිස්තුව මුද්‍රණය කර දෙමාපියන්ට යවයි. ඒ සඳහා භාවිත කරන DBMS වස්තුව?",
+  o:["වගුව (Table)","විමසුම (Query)","දත්ත ආකෘතිය (Form)","වාර්තාව (Report)"],a:3,
+  e:"වගුව තබයි · විමසුම සොයයි · ආකෘතිය ඇතුළු කරයි · වාර්තාව පෙන්වයි (මුද්‍රණයට)."},
+ {q:"“ඉලෙක්ට්‍රොනික දත්ත සමුදායකට වඩා අත්පුරුදු දත්ත සමුදායක දත්ත යාවත්කාලීන කිරීම පහසුයි.” මෙය?",
+  o:["සත්‍යයි","අසත්‍යයි"],a:1,
+  e:"2025 MCQ උගුල. යාවත්කාලීන කිරීම පහසු ඉලෙක්ට්‍රොනික එකයි."},
+ {q:"එක් එක් ඉසව්වට පුහුණුකරුවෙක්. එක් පුහුණුකරුවෙකුට ඉසව් කිහිපයක්. නම, දුරකථනය අනුපිටපත් නොකර තබා ගන්න හොඳම ක්‍රමය?",
+  o:["EVENT වගුවට C_name, C_phone එකතු කිරීම","COACH(C_id, C_name, C_phone) නව වගුව + EVENT වගුවට C_id (FK)","REGISTRATION වගුවට C_name එකතු කිරීම","STUDENT වගුවට C_phone එකතු කිරීම"],a:1,
+  e:"පුහුණුකරුගේ visiting card එක එක තැනයි. ඉසව්වේ ලියන්නේ C_id විතරයි. 2023, 2024, 2025 තුනේම II පත්‍රයේ ආව ප්‍රශ්නය."}
+];
+const TIME=60;
+let name="",i=0,score=0,streak=0,log=[],tick=null,left=TIME,locked=false;
+const app=document.getElementById("app"),topEl=document.getElementById("scoreTop");
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function start(){
+  app.innerHTML=`<h1>යතුරු ක්‍රීඩාව</h1>
+  <p>ප්‍රශ්න ${Q.length}යි. එක ප්‍රශ්නයකට තත්පර ${TIME}යි. ඉක්මනින් හරි උත්තරය දුන්නොත් ලකුණු වැඩියි. දිගටම හරි ගියොත් බෝනස් ලකුණුත් තියෙනවා.</p>
+  <p class="muted">අවසානයේ ඔබේ ප්‍රතිඵලය copy කරලා class chat එකට දාන්න.</p>
+  <label for="nm">ඔබේ නම</label><input id="nm" autocomplete="off" placeholder="උදා: Kavindu">
+  <button class="primary" id="go" disabled>පටන් ගමු</button>`;
+  const nm=document.getElementById("nm"),go=document.getElementById("go");
+  nm.oninput=()=>go.disabled=!nm.value.trim();
+  nm.onkeydown=e=>{if(e.key==="Enter"&&nm.value.trim())go.click()};
+  go.onclick=()=>{name=nm.value.trim();i=0;score=0;streak=0;log=[];topEl.hidden=false;show()};
+}
+function tableHTML(t){
+  const hl=new Set((t.hl||[]).map(([r,c])=>r+","+c));
+  return `<div class="tbl"><div class="tn">${esc(t.n)}</div><table><thead><tr>${t.c.map(c=>`<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>${
+    t.r.map((row,ri)=>`<tr>${row.map((v,ci)=>`<td${hl.has(ri+","+ci)?' class="hl"':""}>${esc(v)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+}
+function show(){
+  const q=Q[i];locked=false;left=TIME;
+  topEl.textContent=`${name} · ${score} ලකුණු`;
+  app.innerHTML=`<div class="qmeta"><span>ප්‍රශ්නය ${i+1} / ${Q.length}</span><span id="sec">${TIME}s</span></div>
+  <div class="timer"><i id="bar"></i></div>
+  <h2>${esc(q.q)}</h2>${q.t?tableHTML(q.t):""}
+  <div class="answers">${q.o.map((o,k)=>`<button class="ans" data-k="${k}"><span class="sh">${SH[k]}</span><span>${esc(o)}</span></button>`).join("")}</div>
+  <div id="fb"></div>`;
+  app.querySelectorAll(".ans").forEach(b=>b.onclick=()=>answer(+b.dataset.k));
+  clearInterval(tick);
+  tick=setInterval(()=>{left-=.2;
+    const bar=document.getElementById("bar"),sec=document.getElementById("sec");
+    if(bar)bar.style.width=Math.max(0,left/TIME*100)+"%";
+    if(sec)sec.textContent=Math.max(0,Math.ceil(left))+"s";
+    if(left<=0)answer(-1)},200);
+}
+function answer(k){
+  if(locked)return;locked=true;clearInterval(tick);
+  const q=Q[i],ok=k===q.a;let pts=0;
+  if(ok){streak++;pts=Math.round(500+500*Math.max(0,left)/TIME)+(streak>=3?100:0);score+=pts}else streak=0;
+  log.push(ok);
+  app.querySelectorAll(".ans").forEach(b=>{const n=+b.dataset.k;b.disabled=true;
+    if(n===q.a)b.classList.add("right");else if(n===k)b.classList.add("wrong");else b.classList.add("dim")});
+  topEl.textContent=`${name} · ${score} ලකුණු`;
+  const head=ok?`හරි! +${pts}${streak>=3?" (streak බෝනස්)":""}`:(k<0?"කාලය ඉවරයි!":"වැරදියි");
+  document.getElementById("fb").innerHTML=`<div class="feedback ${ok?"ok":"no"}"><b>${head}</b><p>${esc(q.e)}</p></div>
+  <button class="primary" id="nx" style="margin-top:12px">${i+1<Q.length?"ඊළඟ ප්‍රශ්නය":"ප්‍රතිඵලය බලන්න"}</button>`;
+  const nx=document.getElementById("nx");nx.focus();
+  nx.onclick=()=>{i++;i<Q.length?show():finish()};
+}
+function finish(){
+  const right=log.filter(Boolean).length;
+  const msg=right===Q.length?"සුපිරි! II පත්‍රයේ Q3 එකට ඔයා ලෑස්තියි.":right>=10?"හොඳයි! වැරදුණ ඒවා පහළින් බලන්න.":right>=6?"නරක නැහැ. යතුරු කොටස තව පාරක් බලමු.":"කමක් නැහැ. පිටුව 3 සහ 5 ක්‍රම දෙක ආයෙත් බලලා ආයෙ උත්සාහ කරන්න.";
+  const res=`ICT පාඩම 09 ක්‍රීඩාව\nනම: ${name}\nලකුණු: ${score}\nහරි: ${right} / ${Q.length}`;
+  topEl.textContent=`${name} · ${score} ලකුණු`;
+  app.innerHTML=`<p class="muted">අවසාන ලකුණු</p><div class="big">${score}</div>
+  <h2>${right} / ${Q.length} හරි. ${msg}</h2>
+  <div class="result" id="res">${esc(res)}</div>
+  <div class="row"><button class="primary" id="cp">ප්‍රතිඵලය copy කරන්න</button><button class="ghost" id="again">නැවත කරන්න</button></div>
+  <p id="cpmsg" class="muted" aria-live="polite"></p>
+  <p class="muted">ප්‍රශ්න අනුව:</p>
+  <ol class="review">${Q.map((q,k)=>`<li><span class="${log[k]?"v":"x"}">${log[k]?"✓":"✗"}</span> ${esc(q.q.length>70?q.q.slice(0,70)+"…":q.q)}</li>`).join("")}</ol>`;
+  document.getElementById("again").onclick=start;
+  document.getElementById("cp").onclick=()=>{
+    const m=document.getElementById("cpmsg");
+    const sel=()=>{const r=document.createRange();r.selectNodeContents(document.getElementById("res"));const s=getSelection();s.removeAllRanges();s.addRange(r);m.textContent="Text එක select කළා. Copy කරලා chat එකට paste කරන්න."};
+    try{navigator.clipboard.writeText(res).then(()=>m.textContent="Copy කළා! දැන් class chat එකට paste කරන්න.",sel)}catch(e){sel()}
+  };
+}
+start();
+</script>
+</body>
+</html>
