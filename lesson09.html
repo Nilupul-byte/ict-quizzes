@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;600;800&family=JetBrains+Mono:wght@500;700&display=swap">
 <style>
-/* Layout: one centred game card, quiz-show board; answer tiles in a 2x2 grid that stacks on phones */
+/* Layout: one centred game card styled like an O/L paper sheet on a quiz-show board; scenario block, then numbered question, then answer tiles */
 :root{
   --bg:#13162b; --panel:#1d2140; --line:#2f3563; --fg:#eef0ff; --muted:#a3a8d6;
   --a:#f2a93b; --b:#2bb5a6; --c:#e9625a; --d:#8b74e8;
@@ -20,16 +20,15 @@
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:16px;line-height:1.6;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
-.wrap{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.wrap{max-width:820px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
 .top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
 .brand{font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase}
 .score{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--fg);font-size:15px}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px;display:flex;flex-direction:column;gap:16px}
 h1{font-size:clamp(26px,5vw,38px);line-height:1.25;margin:0;font-weight:800;text-wrap:balance}
-h2{font-size:clamp(18px,3.4vw,22px);line-height:1.45;margin:0;font-weight:600;text-wrap:balance}
+h2{font-size:clamp(17px,3.2vw,20px);line-height:1.55;margin:0;font-weight:600}
 p{margin:0}
 .muted{color:var(--muted)}
-.key{font-family:var(--mono);font-size:.92em;background:#ffffff12;padding:1px 6px;border-radius:5px}
 input{width:100%;font:inherit;padding:12px 14px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--fg)}
 button{font:inherit;cursor:pointer;border:0;border-radius:10px}
 .primary{background:var(--a);color:#1a1300;font-weight:800;padding:13px 22px;align-self:flex-start}
@@ -37,17 +36,27 @@ button{font:inherit;cursor:pointer;border:0;border-radius:10px}
 button:focus-visible,input:focus-visible{outline:3px solid var(--fg);outline-offset:2px}
 .timer{height:8px;background:var(--line);border-radius:99px;overflow:hidden}
 .timer i{display:block;height:100%;background:var(--b);width:100%;transition:width .2s linear}
-.qmeta{display:flex;justify-content:space-between;font-family:var(--mono);font-size:13px;color:var(--muted)}
-.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
-.tbl .tn{font-family:var(--mono);font-size:12px;padding:6px 10px;color:var(--muted);border-bottom:1px solid var(--line)}
-table{border-collapse:collapse;width:100%;font-family:var(--mono);font-size:13px}
-th,td{padding:6px 10px;text-align:left;white-space:nowrap;border-bottom:1px solid #ffffff0d}
+.timer i.low{background:var(--c)}
+.qmeta{display:flex;justify-content:space-between;gap:12px;font-family:var(--mono);font-size:13px;color:var(--muted)}
+.scen{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.scen .range{font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:var(--a)}
+.scen .intro{font-size:15px}
+.note{font-size:14px;color:var(--muted)}
+.note b{color:var(--fg);font-weight:600}
+.tables{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:10px;min-width:0;background:var(--panel)}
+.tbl .tn{font-size:13px;padding:6px 10px;color:var(--muted);border-bottom:1px solid var(--line)}
+.tbl .tn b{font-family:var(--mono);color:var(--fg);font-weight:700}
+table{border-collapse:collapse;width:100%;font-family:var(--mono);font-size:12.5px;font-variant-numeric:tabular-nums}
+th,td{padding:5px 10px;text-align:left;white-space:nowrap;border-bottom:1px solid #ffffff0d}
 th{color:var(--a);font-weight:700}
-td.hl{background:#e9625a33}
+.stmts{display:flex;flex-direction:column;gap:6px;font-size:15px;padding-left:4px}
+.stmts b{font-family:var(--mono);color:var(--a)}
 .answers{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-@media (max-width:520px){.answers{grid-template-columns:1fr}}
-.ans{display:flex;gap:12px;align-items:center;text-align:left;padding:14px 16px;color:#fff;font-weight:600;min-height:64px;line-height:1.4}
-.ans .sh{font-size:20px;flex:none;width:24px;text-align:center}
+@media (max-width:560px){.answers{grid-template-columns:1fr}}
+.ans{display:flex;gap:10px;align-items:center;text-align:left;padding:12px 14px;color:#fff;font-weight:600;min-height:58px;line-height:1.45}
+.ans .sh{font-size:18px;flex:none;width:20px;text-align:center}
+.ans .no{font-family:var(--mono);flex:none;opacity:.85}
 .ans span{min-width:0}
 .ans:nth-child(1){background:#b8771a}.ans:nth-child(2){background:#1d8679}.ans:nth-child(3){background:#b8433d}.ans:nth-child(4){background:#5f4bb8}
 .ans:disabled{cursor:default}
@@ -61,7 +70,7 @@ td.hl{background:#e9625a33}
 .result{font-family:var(--mono);font-size:13px;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px;white-space:pre-wrap;user-select:all}
 .row{display:flex;gap:10px;flex-wrap:wrap}
 .ghost{background:transparent;border:1px solid var(--line);color:var(--fg);padding:12px 18px}
-ol.review{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px;font-size:14px}
+ol.review{margin:0;padding-left:26px;display:flex;flex-direction:column;gap:6px;font-size:14px}
 ol.review .x{color:var(--bad)} ol.review .v{color:var(--ok)}
 @media (prefers-reduced-motion:reduce){.timer i{transition:none}}
 </style>
@@ -76,53 +85,81 @@ ol.review .x{color:var(--bad)} ol.review .v{color:var(--ok)}
 
 <script>
 const SH=["▲","◆","●","■"];
+/* Scenarios: shared context for a block of questions, in O/L paper style */
+const S={
+ A:{range:"ප්‍රශ්න 1 – 4",
+  intro:"ප්‍රශ්න අංක 1 සිට 4 තෙක් පිළිතුරු සැපයීමට, ටියුෂන් ආයතනයක සිසුන්, පන්ති සහ ඔවුන් පන්තිවලට බැඳීම පිළිබඳ දත්ත ආචයනය කිරීමට භාවිත කරන පහත අර්ධ වශයෙන් පෙන්වා ඇති දත්ත සමුදා වගු සලකන්න.",
+  note:"එක් සිසුවෙකුට පන්ති කිහිපයකට බැඳිය හැකි අතර, එක් පන්තියකට සිසුන් කිහිපදෙනෙකු සිටිය හැකි ය.",
+  t:[{n:"STUDENT",s:"සිසුවා",c:["Student_ID","Name","Phone"],r:[["ST01","Amal","0712345678"],["ST02","Fathima","0779876543"],["ST03","Nipun","0701122334"],["ST04","Senuri","0765544332"]]},
+     {n:"CLASS",s:"පන්තිය",c:["Class_ID","Subject","Day"],r:[["C01","Mathematics","Saturday"],["C02","ICT","Sunday"],["C03","Science","Saturday"]]},
+     {n:"ENROLMENT",s:"පන්තියට බැඳීම",c:["Student_ID","Class_ID","Join_date"],r:[["ST01","C02","05/01/2026"],["ST01","C01","05/01/2026"],["ST02","C01","06/01/2026"],["ST03","C02","08/01/2026"],["ST04","C03","10/01/2026"]]}]},
+ B:{range:"ප්‍රශ්න 5 – 8",
+  intro:"ප්‍රශ්න අංක 5 සිට 8 තෙක් පිළිතුරු සැපයීමට, ප්‍රාදේශීය පුස්තකාලයක සාමාජිකයින්, පොත් සහ පොත් ණයට දීම පිළිබඳ දත්ත ආචයනය කිරීමට භාවිත කරන පහත අර්ධ වශයෙන් පෙන්වා ඇති දත්ත සමුදා වගු සලකන්න.",
+  note:"Book_No මගින් පොතක් අනන්‍ය ව හඳුනා ගැනේ. එකම සාමාජිකයාට එකම පොත වෙනත් දිනයක නැවත ණයට ගත හැකි අතර, එක් දිනක පොත් කිහිපයක් ණයට ගත හැකි ය.",
+  t:[{n:"MEMBER",s:"සාමාජිකයා",c:["Member_ID","Name","Address"],r:[["M100","Saman","Kandy"],["M101","Raj","Jaffna"],["M103","Shane","Galle"]]},
+     {n:"BOOK",s:"පොත",c:["Book_No","Title","Author"],r:[["B1111","ICT Made Easy","K. Perera"],["B2222","Sinhala Grammar","S. Silva"],["B3333","History of Lanka","M. Fernando"]]},
+     {n:"LOAN",s:"ණයට දීම",c:["Member_ID","Book_No","Borrowed_Date","Return_Date"],r:[["M101","B2222","03/09/2026","16/09/2026"],["M100","B3333","03/09/2026","17/09/2026"],["M101","B1111","03/09/2026","17/09/2026"],["M100","B3333","20/09/2026","NULL"]]}]},
+ C:{range:"ප්‍රශ්න 9 – 12",
+  intro:"ප්‍රශ්න අංක 9 සිට 12 තෙක් පිළිතුරු සැපයීමට, වාහන සේවා මධ්‍යස්ථානයක වාහන, ලබා දෙන සේවා සහ සේවා වාර පිළිබඳ දත්ත ආචයනය කිරීමට භාවිත කරන පහත අර්ධ වශයෙන් පෙන්වා ඇති දත්ත සමුදා වගු සලකන්න.",
+  note:"එක් වාහනයකට සේවා කිහිපයක් ලබා ගත හැකි අතර, එක් සේවාවක් වාහන කිහිපයකට ලබා දිය හැකි ය. එකම වාහනයට එකම සේවාව වෙනස් දිනවල නැවත ලබා ගත හැකි ය.",
+  t:[{n:"VEHICLE",s:"වාහනය",c:["Vehicle_No","Owner_name","Model"],r:[["CAA-1234","Saman","Toyota Aqua"],["KX-5678","Nimal","Honda Vezel"],["CBB-9012","Fathima","Suzuki Alto"]]},
+     {n:"SERVICE",s:"සේවාව",c:["Service_ID","Service_name","Price"],r:[["SV1","Oil change","4500.00"],["SV2","Wheel alignment","3000.00"],["SV3","Body wash","1500.00"]]},
+     {n:"SERVICE_RECORD",s:"සේවා වාරය",c:["Vehicle_No","Service_ID","Service_date"],r:[["CAA-1234","SV1","02/03/2026"],["CAA-1234","SV3","02/03/2026"],["KX-5678","SV1","15/03/2026"],["CAA-1234","SV1","20/06/2026"]]}]},
+ D:{range:"ප්‍රශ්න 13 – 15",
+  intro:"ප්‍රශ්න අංක 13 සිට 15 තෙක් දත්ත සමුදා පිළිබඳ සාමාන්‍ය සංකල්ප මත පදනම් වේ.",t:[]}
+};
 const Q=[
- {q:"STUDENT වගුවේ ප්‍රාථමික යතුර (Primary Key) ලෙස වඩාත් සුදුසු කුමක්ද?",
-  t:{n:"STUDENT",c:["Admission_No","Name","DOB"],r:[["1426","Kavindu","2005.05.23"],["1427","Meenadevi","2005.08.12"],["1428","Kavindu","2005.02.07"]]},
-  o:["Name","Admission_No","DOB","Name + DOB"],a:1,
-  e:"ඇතුළත් වීමේ අංකය හිස් නැහැ, නැවත එන්නෙත් නැහැ. NIC අංකය වගේ."},
- {q:"ඉහත වගුවේ “Kavindu” නමින් ළමයි දෙන්නෙක් ඉන්නවා. Name ප්‍රාථමික යතුර කරන්න බැරි ඇයි?",
-  o:["Name හිස් විය හැකි නිසා","Name අනුපිටපත් (duplicate) විය හැකි නිසා","Name, Text වර්ගයේ නිසා","Name දිග වැඩි නිසා"],a:1,
-  e:"PK නීති 2: ① හිස් නොවිය යුතුයි ② අනුපිටපත් නොවිය යුතුයි. නම් නැවත නැවත එනවා."},
- {q:"සිනමා ශාලාවක එකම ආසනය (B12) දවසේ දර්ශන කිහිපයකට වෙන් කළ හැකියි. මෙම වගුවේ PK කුමක්ද?",
-  t:{n:"BOOKING",c:["Row","Seat_No","Show_Time","Name"],r:[["B","12","3.00 pm","Saman"],["B","12","7.00 pm","Nimal"],["C","12","3.00 pm","Amal"]]},
-  o:["Seat_No","Row + Seat_No","Row + Seat_No + Show_Time","Name"],a:2,
-  e:"B තනියම ආසනයක් නොවේ, 12 තනියමත් නොවේ. B12 + වේලාව එකට = අනන්‍යයි. මෙය සංයුක්ත යතුරකි (Composite Key)."},
- {q:"LIBRARY_LOAN වගුවේ ප්‍රාථමික යතුර කුමක්ද?",
-  t:{n:"LIBRARY_LOAN",c:["Student_No","Book_No","Borrowed_Date","Return_Date"],r:[["101","2222","2/9/2014","16/9/2014"],["100","3333","3/9/2014","17/9/2014"],["101","1111","3/9/2014","17/9/2014"],["100","3333","4/9/2014","18/9/2014"]],hl:[[1,0],[1,1],[3,0],[3,1]]},
-  o:["Student_No + Book_No","Book_No","Student_No + Book_No + Borrowed_Date","Return_Date"],a:2,
-  e:"100 / 3333 දෙපාරක් එනවා (එකම ළමයා එකම පොත දෙවතාවක්). දිනයත් එකතු කළාම තමයි අනන්‍ය වෙන්නේ."},
- {q:"STUDENT වගුවේ PK = Admission_No. පහත MARKS වගුවේ ආගන්තුක යතුර (Foreign Key) කුමක්ද?",
-  t:{n:"MARKS",c:["Admission_No","Marks","Term","Year"],r:[["1426","69","1","2014"],["1426","72","2","2014"]]},
-  o:["Marks","MARKS වගුවේ Admission_No","Term","Year"],a:1,
-  e:"ගාස්තු රිසිට් එකේ ළමයාගේ අංකය විතරයි ලියන්නේ. විස්තර බලන්න ලේඛනයට යනවා. වෙනත් වගුවක PK = මෙතන FK."},
- {q:"දුරකථන අංකය 0112785123 තැන්පත් කිරීමට වඩාත් සුදුසු දත්ත ප්‍රරූපය?",
-  o:["Number (Integer)","Currency","Text","Boolean"],a:2,
-  e:"දුරකථන අංකයෙන් ගණන් හදන්නේ නැහැ. Number දැම්මොත් මුලින් ඇති 0 නැති වෙනවා. ID, NIC, C001 → Text."},
- {q:"එක් පාරිභෝගිකයෙකුට මීටර කිහිපයක් තිබිය හැකියි. එක මීටරයක් එක් පාරිභෝගිකයෙකුට පමණයි. CUSTOMER — METER සම්බන්ධතාවය?",
-  o:["එකට-එක (1:1)","එකට-බහු (1:M)","බහු-බහු (M:M)","සම්බන්ධතාවයක් නැත"],a:1,
-  e:"අම්මා එක්කෙනයි, දරුවෝ කිහිප දෙනෙක් වගේ. 1 පැත්ත CUSTOMER, බහු පැත්ත METER."},
- {q:"ළමයෙක් ක්‍රීඩා කිහිපයක්, ක්‍රීඩාවකට ළමයි කිහිප දෙනෙක්. මැද වගුව STUDENT_SPORT(Admission_No, Sport_No, Team) හි PK කුමක්ද?",
-  o:["Admission_No","Sport_No","Admission_No + Sport_No","Team"],a:2,
-  e:"බහු-බහු → මැද වගුවක්. මැද වගුවේ PK = FK දෙකේ එකතුව. ටියුෂන් පන්තියේ පැමිණීමේ ලැයිස්තුව වගේ."},
- {q:"සෑම වාහනයකටම නිශ්චිත කුලී ගාස්තුවක් (Rental_rate) ඇත. එම ක්ෂේත්‍රය එකතු කළ යුත්තේ කුමන වගුවටද?",
-  o:["CUSTOMER","VEHICLE","RENTAL","නව වගුවක්"],a:1,
-  e:"“මේ අගය කාගේ දේපළද?” ගාස්තුව වාහනයට අයිතියි, හැම කුලියකටම එකමයි → VEHICLE."},
- {q:"කුලියට දුන් වාහනය නැවත භාර දුන් දිනය (Return_date) එකතු කළ යුත්තේ කුමන වගුවටද?",
-  o:["CUSTOMER","VEHICLE","RENTAL","නව වගුවක්"],a:2,
-  e:"භාර දෙන දිනය එක් එක් කුලියට ගැනීමට අයිතියි. ඒ නිසා RENTAL."},
- {q:"STUDENT වගුවේ 1999 අංකයෙන් ළමයෙක් නැත. MARKS(1999, 55, 1, 2014) රෙකෝඩය ඇතුළත් කළ හැකිද?",
-  o:["ඔව්, PK අනුපිටපත් නැති නිසා","නැහැ, FK අගය (1999) STUDENT වගුවේ නැති නිසා","ඔව්, Marks 100ට අඩු නිසා","නැහැ, Year එක පරණ නිසා"],a:1,
-  e:"පුස්තකාලය නොදන්න කෙනෙකුට පොත් දෙන්නේ නැහැ. FK අගය ප්‍රධාන වගුවේ කලින්ම තිබිය යුතුයි."},
- {q:"පන්ති භාරකරු මාසික ලකුණු ලැයිස්තුව මුද්‍රණය කර දෙමාපියන්ට යවයි. ඒ සඳහා භාවිත කරන DBMS වස්තුව?",
-  o:["වගුව (Table)","විමසුම (Query)","දත්ත ආකෘතිය (Form)","වාර්තාව (Report)"],a:3,
-  e:"වගුව තබයි · විමසුම සොයයි · ආකෘතිය ඇතුළු කරයි · වාර්තාව පෙන්වයි (මුද්‍රණයට)."},
- {q:"“ඉලෙක්ට්‍රොනික දත්ත සමුදායකට වඩා අත්පුරුදු දත්ත සමුදායක දත්ත යාවත්කාලීන කිරීම පහසුයි.” මෙය?",
-  o:["සත්‍යයි","අසත්‍යයි"],a:1,
-  e:"2025 MCQ උගුල. යාවත්කාලීන කිරීම පහසු ඉලෙක්ට්‍රොනික එකයි."},
- {q:"එක් එක් ඉසව්වට පුහුණුකරුවෙක්. එක් පුහුණුකරුවෙකුට ඉසව් කිහිපයක්. නම, දුරකථනය අනුපිටපත් නොකර තබා ගන්න හොඳම ක්‍රමය?",
-  o:["EVENT වගුවට C_name, C_phone එකතු කිරීම","COACH(C_id, C_name, C_phone) නව වගුව + EVENT වගුවට C_id (FK)","REGISTRATION වගුවට C_name එකතු කිරීම","STUDENT වගුවට C_phone එකතු කිරීම"],a:1,
-  e:"පුහුණුකරුගේ visiting card එක එක තැනයි. ඉසව්වේ ලියන්නේ C_id විතරයි. 2023, 2024, 2025 තුනේම II පත්‍රයේ ආව ප්‍රශ්නය."}
+ {s:"A",q:"ENROLMENT වගුවේ ප්‍රාථමික යතුර (primary key) සඳහා වඩාත් උචිත කුමක් ද?",
+  o:["Student_ID","Class_ID","Student_ID + Class_ID","Student_ID + Join_date"],a:2,
+  e:"Student_ID (ST01) සහ Class_ID (C01, C02) තනියම නැවත එනවා. ST01 + 05/01/2026 ද දෙපාරක් එනවා. Student_ID + Class_ID එකතුව කිසි පේළියක නැවත එන්නේ නැහැ. මැද වගුවේ ප්‍රාථමික යතුර = අනිත් වගු දෙකේ ප්‍රාථමික යතුරු දෙකේ එකතුව."},
+ {s:"A",q:"මෙම දත්ත සමුදායේ ආගන්තුක යතුරක් (foreign key) වන්නේ කුමක් ද?",
+  o:["ENROLMENT වගුවේ Class_ID","STUDENT වගුවේ Student_ID","CLASS වගුවේ Subject","ENROLMENT වගුවේ Join_date"],a:0,
+  e:"ENROLMENT වගුවේ Class_ID, CLASS වගුවේ ප්‍රාථමික යතුරයි. ඒ නිසා ENROLMENT හි එය ආගන්තුක යතුරකි. STUDENT වගුවේ Student_ID එම වගුවේම ප්‍රාථමික යතුර නිසා උත්තරය නොවේ."},
+ {s:"A",q:"STUDENT වගුවේ Phone ක්ෂේත්‍රය (field) සඳහා උචිත දත්ත ප්‍රරූපය (data type) කුමක් ද?",
+  o:["Boolean","Currency","Number","Text"],a:3,
+  e:"දුරකථන අංකයෙන් ගණනය කිරීම් කරන්නේ නැහැ. Number තෝරුවොත් මුලින් ඇති 0 ඉලක්කම නැති වෙනවා. ඒ නිසා Text."},
+ {s:"A",q:"Kavindu නම් නව සිසුවෙක් (Student_ID: ST05) ආයතනයට ඇතුළත් වී දැනට පවතින ICT පන්තියට (C02) බැඳේ. එම අවශ්‍යතාවය සඳහා කුමන වගු යාවත්කාලීන කළ යුතු ද?",
+  o:["STUDENT පමණක්","ENROLMENT පමණක්","STUDENT සහ ENROLMENT පමණක්","STUDENT, CLASS සහ ENROLMENT"],a:2,
+  e:"නව සිසුවා නිසා STUDENT වගුවට පේළියක්. පන්තියට බැඳීම නිසා ENROLMENT වගුවට පේළියක්. ICT පන්තිය (C02) දැනටමත් තිබෙන නිසා CLASS වගුව වෙනස් නොවේ."},
+ {s:"B",q:"LOAN වගුවේ ප්‍රාථමික යතුර (primary key) සඳහා වඩාත් උචිත කුමක් ද?",
+  o:["Member_ID + Book_No","Member_ID + Borrowed_Date","Member_ID + Book_No + Borrowed_Date","Book_No"],a:2,
+  e:"M100 + B3333 දෙපාරක් එනවා (දින දෙකක). M101 + 03/09/2026 ද දෙපාරක් එනවා. තීරු තුනම එකතු කළ විට පමණයි හැම පේළියක්ම අනන්‍ය වන්නේ. මෙය සංයුක්ත ප්‍රාථමික යතුරකි (composite primary key)."},
+ {s:"B",q:"MEMBER වගුවේ M102 නමින් සාමාජිකයෙක් නොමැත. LOAN වගුවට (M102, B1111, 05/09/2026, NULL) රෙකෝඩය ඇතුළත් කළ හැකි ද?",
+  o:["ඔව්, ප්‍රාථමික යතුරේ අගය අනුපිටපත් නොවන නිසා","නැත, M102 අගය MEMBER වගුවේ නොමැති නිසා","නැත, Return_Date ක්ෂේත්‍රය හිස් නිසා","ඔව්, B1111 අගය BOOK වගුවේ ඇති නිසා"],a:1,
+  e:"Member_ID යනු LOAN වගුවේ ආගන්තුක යතුරකි. ආගන්තුක යතුරේ අගය ප්‍රධාන වගුවේ (MEMBER) කලින්ම තිබිය යුතුයි. Return_Date ප්‍රාථමික යතුරේ කොටසක් නොවන නිසා හිස් විය හැකියි."},
+ {s:"B",q:"Member_ID M100 වන සාමාජිකයා ණයට ගත් පොත්වල නම් (Title) පෙන්වා දැක්වීමට අවශ්‍ය ය. මෙම අවශ්‍යතාවය සඳහා කුමන වගු සම්බන්ධ කරගත යුතු ද?",
+  o:["LOAN පමණක්","BOOK පමණක්","LOAN සහ BOOK පමණක්","MEMBER, LOAN සහ BOOK"],a:2,
+  e:"Member_ID (M100) LOAN වගුවේම තිබෙනවා. එතනින් Book_No හරහා BOOK වගුවට ගොස් Title ගන්නවා. සාමාජිකයාගේ නම දී තිබුණා නම් පමණයි MEMBER වගුවත් අවශ්‍ය වන්නේ."},
+ {s:"B",q:"එක් එක් පොතේ පිටු ගණන (Pages) ආචයනය කිරීමට නව ක්ෂේත්‍රයක් එකතු කිරීමට අවශ්‍ය නම්, එය එකතු කළ යුත්තේ කුමන වගුවට ද?",
+  o:["BOOK","MEMBER","LOAN","නව වගුවක්"],a:0,
+  e:"පිටු ගණන පොතට අයිති දෙයක්. කවුරු කොයි දවසේ ණයට ගත්තත් එය වෙනස් වෙන්නේ නැහැ. ඒ නිසා Book_No මත රඳා පවතී, එනම් BOOK වගුව."},
+ {s:"C",q:"VEHICLE සහ SERVICE වගු අතර සම්බන්ධතාවය කුමක් ද?",
+  o:["එකට-එක (one to one)","එකට-බහු (one to many)","බහු-බහු (many to many)","සම්බන්ධතාවයක් නොමැත"],a:2,
+  e:"වාහනයකට සේවා කිහිපයක්, සේවාවකට වාහන කිහිපයක්. ඒ නිසා බහු-බහු. එය එකට-බහු සම්බන්ධතා දෙකක් බවට පත් කිරීමට මැද වගුව ලෙස SERVICE_RECORD භාවිත කරනවා."},
+ {s:"C",q:"SERVICE වගුවේ Price ක්ෂේත්‍රය සඳහා වඩාත් උචිත දත්ත ප්‍රරූපය (data type) කුමක් ද?",
+  o:["Text","Boolean","Date/Time","Currency"],a:3,
+  e:"සේවා ගාස්තුව මුදල් අගයකි (Rs. 4500.00). ඒ නිසා මුදල් (Currency) දත්ත ප්‍රරූපය."},
+ {s:"C",q:"සේවාවක් ලබා ගත් එක් එක් අවස්ථාවේ වාහනයේ කිලෝමීටර් කියවීම (Mileage) ආචයනය කිරීමට අවශ්‍ය ය. Mileage ක්ෂේත්‍රය එකතු කළ යුත්තේ කුමන වගුවට ද?",
+  o:["VEHICLE","SERVICE","නව වගුවක්","SERVICE_RECORD"],a:3,
+  e:"කිලෝමීටර් කියවීම හැම සේවා වාරයකටම වෙනස්. එය එක් සේවා වාරයකට (වාහනය + සේවාව + දිනය) අයිතියි. ඒ නිසා SERVICE_RECORD."},
+ {s:"C",q:"එක් එක් සේවා වාරය කාර්මිකයෙකුට (mechanic) පැවරීමට තීරණය කෙරේ. එක් කාර්මිකයෙකුට සේවා වාර කිහිපයක් කළ හැකි ය. දත්ත අනුපිටපත් නොකරමින් කාර්මිකයාගේ නම සහ දුරකථන අංකය ආචයනය කිරීමට වඩාත් සුදුසු ක්‍රමය කුමක් ද?",
+  o:["SERVICE_RECORD වගුවට M_name සහ M_phone ක්ෂේත්‍ර එකතු කිරීම","MECHANIC(M_id, M_name, M_phone) නව වගුව සාදා, SERVICE_RECORD වගුවට M_id එකතු කිරීම","MECHANIC(M_id, M_name, M_phone) නව වගුව සාදා, VEHICLE වගුවට M_phone එකතු කිරීම","SERVICE වගුවට M_name සහ M_phone ක්ෂේත්‍ර එකතු කිරීම"],a:1,
+  e:"නම සහ දුරකථනය එක තැනක (MECHANIC වගුවේ) පමණයි. SERVICE_RECORD වගුවට M_id ආගන්තුක යතුරක් ලෙස එකතු කරනවා. 2023, 2024, 2025 II පත්‍රයේ ආව රටාවමයි."},
+ {s:"D",q:"දත්ත සමුදා යතුරු (keys) සම්බන්ධයෙන් පහත ප්‍රකාශ සලකන්න.",
+  st:["A – ප්‍රාථමික යතුරු (primary key) ක්ෂේත්‍රයක අගය හිස්ව තැබිය හැකි ය.","B – ආගන්තුක යතුරු (foreign key) ක්ෂේත්‍රයක අගයන් අනුපිටපත් විය හැකි ය.","C – සංයුක්ත ප්‍රාථමික යතුරක් (composite primary key) ක්ෂේත්‍ර දෙකක් හෝ ඊට වැඩි ගණනකින් සමන්විත වේ."],
+  q2:"ඉහත ප්‍රකාශ අතුරින් නිවැරදි වන්නේ කවරක් ද?",
+  o:["A හා B පමණි","A හා C පමණි","B හා C පමණි","A, B සහ C සියල්ලම"],a:2,
+  e:"ප්‍රාථමික යතුර කවදාවත් හිස් විය නොහැකියි, එබැවින් A වැරදියි. ආගන්තුක යතුරු තීරුවේ අගයන් නැවත නැවත එන්න පුළුවන් (උදා: LOAN හි M101), එබැවින් B නිවැරදියි. C නිවැරදියි."},
+ {s:"D",q:"දත්ත සමුදා සම්බන්ධයෙන් පහත ප්‍රකාශ සලකන්න.",
+  st:["A – අත්පුරුදු දත්ත සමුදා සමග සසඳන විට, ඉලෙක්ට්‍රොනික දත්ත සමුදායක දත්ත විශ්ලේෂණය පහසු හා වේගවත් වේ.","B – ඉලෙක්ට්‍රොනික දත්ත සමුදායකට වඩා පහසුවෙන් අත්පුරුදු දත්ත සමුදායක දත්ත යාවත්කාලීන කළ හැකි ය.","C – දත්ත සමතිරික්තතාව (data redundancy) අඩු වන විට දත්තවල නිරවද්‍යතාව වැඩි වේ."],
+  q2:"ඉහත ප්‍රකාශ අතුරින් නිවැරදි වන්නේ කවරක් ද?",
+  o:["A හා B පමණි","A හා C පමණි","B හා C පමණි","A, B සහ C සියල්ලම"],a:1,
+  e:"B යනු 2025 MCQ උගුලයි. යාවත්කාලීන කිරීම පහසු ඉලෙක්ට්‍රොනික දත්ත සමුදායේයි. එකම දත්තය එක තැනක පමණක් ඇති විට වැරදීමට ඉඩ අඩු නිසා C නිවැරදියි."},
+ {s:"D",q:"පාසලක දත්ත සමුදා කළමනාකරණ පද්ධතියක (DBMS) පහත අවශ්‍යතා සලකන්න.",
+  st:["P – කාර්යාල සහායිකාව නව සිසුන්ගේ විස්තර එකින් එක ඇතුළත් කිරීම","Q – ලකුණු 75ට වැඩි සිසුන්ගේ නම් පමණක් සොයා ගැනීම","R – මාසික ලකුණු ලැයිස්තුව මුද්‍රණය කර දෙමාපියන්ට යැවීම"],
+  q2:"P, Q සහ R සඳහා භාවිත කළ යුතු DBMS වස්තු පිළිවෙළින් කවරේ ද?",
+  o:["වගුව, විමසුම, වාර්තාව","දත්ත ආකෘතිය, විමසුම, වාර්තාව","දත්ත ආකෘතිය, වාර්තාව, විමසුම","විමසුම, දත්ත ආකෘතිය, වාර්තාව"],a:1,
+  e:"දත්ත ආකෘතිය (form) ඇතුළු කරයි, විමසුම (query) සොයයි, වාර්තාව (report) මුද්‍රණයට පෙන්වයි. වගුව (table) දත්ත තබා ගන්නා තැන පමණයි."}
 ];
 const TIME=60;
 let name="",i=0,score=0,streak=0,log=[],tick=null,left=TIME,locked=false;
@@ -131,8 +168,8 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",
 
 function start(){
   app.innerHTML=`<h1>යතුරු ක්‍රීඩාව</h1>
-  <p>ප්‍රශ්න ${Q.length}යි. එක ප්‍රශ්නයකට තත්පර ${TIME}යි. ඉක්මනින් හරි උත්තරය දුන්නොත් ලකුණු වැඩියි. දිගටම හරි ගියොත් බෝනස් ලකුණුත් තියෙනවා.</p>
-  <p class="muted">අවසානයේ ඔබේ ප්‍රතිඵලය copy කරලා class chat එකට දාන්න.</p>
+  <p>O/L I පත්‍රයේ බහුවරණ ප්‍රශ්න ආකෘතියෙන් ප්‍රශ්න ${Q.length}යි. එක ප්‍රශ්නයකට විනාඩියක් ලැබේ. වගු හොඳින් කියවා උත්තර දෙන්න. ඉක්මනින් හරි උත්තරය දුන්නොත් ලකුණු වැඩියි, දිගටම හරි ගියොත් බෝනස් ලකුණුත් ලැබේ.</p>
+  <p class="muted">අවසානයේ ඔබේ ප්‍රතිඵලය copy කර class chat එකට දාන්න.</p>
   <label for="nm">ඔබේ නම</label><input id="nm" autocomplete="off" placeholder="උදා: Kavindu">
   <button class="primary" id="go" disabled>පටන් ගමු</button>`;
   const nm=document.getElementById("nm"),go=document.getElementById("go");
@@ -141,23 +178,27 @@ function start(){
   go.onclick=()=>{name=nm.value.trim();i=0;score=0;streak=0;log=[];topEl.hidden=false;show()};
 }
 function tableHTML(t){
-  const hl=new Set((t.hl||[]).map(([r,c])=>r+","+c));
-  return `<div class="tbl"><div class="tn">${esc(t.n)}</div><table><thead><tr>${t.c.map(c=>`<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>${
-    t.r.map((row,ri)=>`<tr>${row.map((v,ci)=>`<td${hl.has(ri+","+ci)?' class="hl"':""}>${esc(v)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+  return `<div class="tbl"><div class="tn"><b>${esc(t.n)}</b> (${esc(t.s)})</div><table><thead><tr>${t.c.map(c=>`<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>${
+    t.r.map(row=>`<tr>${row.map(v=>`<td>${esc(v)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
 }
 function show(){
-  const q=Q[i];locked=false;left=TIME;
+  const q=Q[i],sc=S[q.s];locked=false;left=TIME;
   topEl.textContent=`${name} · ${score} ලකුණු`;
   app.innerHTML=`<div class="qmeta"><span>ප්‍රශ්නය ${i+1} / ${Q.length}</span><span id="sec">${TIME}s</span></div>
   <div class="timer"><i id="bar"></i></div>
-  <h2>${esc(q.q)}</h2>${q.t?tableHTML(q.t):""}
-  <div class="answers">${q.o.map((o,k)=>`<button class="ans" data-k="${k}"><span class="sh">${SH[k]}</span><span>${esc(o)}</span></button>`).join("")}</div>
+  <div class="scen"><span class="range">${esc(sc.range)}</span><p class="intro">${esc(sc.intro)}</p>
+   ${sc.t.length?`<div class="tables">${sc.t.map(tableHTML).join("")}</div>`:""}
+   ${sc.note?`<p class="note"><b>සටහන:</b> ${esc(sc.note)}</p>`:""}</div>
+  <h2>${i+1}. ${esc(q.q)}</h2>
+  ${q.st?`<div class="stmts">${q.st.map(s=>`<p><b>${esc(s.slice(0,1))}</b>${esc(s.slice(1))}</p>`).join("")}</div><h2>${esc(q.q2)}</h2>`:""}
+  <div class="answers">${q.o.map((o,k)=>`<button class="ans" data-k="${k}"><span class="sh">${SH[k]}</span><span class="no">(${k+1})</span><span>${esc(o)}</span></button>`).join("")}</div>
   <div id="fb"></div>`;
   app.querySelectorAll(".ans").forEach(b=>b.onclick=()=>answer(+b.dataset.k));
+  window.scrollTo({top:0});
   clearInterval(tick);
   tick=setInterval(()=>{left-=.2;
     const bar=document.getElementById("bar"),sec=document.getElementById("sec");
-    if(bar)bar.style.width=Math.max(0,left/TIME*100)+"%";
+    if(bar){bar.style.width=Math.max(0,left/TIME*100)+"%";bar.classList.toggle("low",left<=10)}
     if(sec)sec.textContent=Math.max(0,Math.ceil(left))+"s";
     if(left<=0)answer(-1)},200);
 }
@@ -169,7 +210,7 @@ function answer(k){
   app.querySelectorAll(".ans").forEach(b=>{const n=+b.dataset.k;b.disabled=true;
     if(n===q.a)b.classList.add("right");else if(n===k)b.classList.add("wrong");else b.classList.add("dim")});
   topEl.textContent=`${name} · ${score} ලකුණු`;
-  const head=ok?`හරි! +${pts}${streak>=3?" (streak බෝනස්)":""}`:(k<0?"කාලය ඉවරයි!":"වැරදියි");
+  const head=ok?`හරි! +${pts}${streak>=3?" (streak බෝනස්)":""}`:(k<0?`කාලය ඉවරයි! නිවැරදි උත්තරය (${q.a+1})`:`වැරදියි. නිවැරදි උත්තරය (${q.a+1})`);
   document.getElementById("fb").innerHTML=`<div class="feedback ${ok?"ok":"no"}"><b>${head}</b><p>${esc(q.e)}</p></div>
   <button class="primary" id="nx" style="margin-top:12px">${i+1<Q.length?"ඊළඟ ප්‍රශ්නය":"ප්‍රතිඵලය බලන්න"}</button>`;
   const nx=document.getElementById("nx");nx.focus();
@@ -177,7 +218,7 @@ function answer(k){
 }
 function finish(){
   const right=log.filter(Boolean).length;
-  const msg=right===Q.length?"සුපිරි! II පත්‍රයේ Q3 එකට ඔයා ලෑස්තියි.":right>=10?"හොඳයි! වැරදුණ ඒවා පහළින් බලන්න.":right>=6?"නරක නැහැ. යතුරු කොටස තව පාරක් බලමු.":"කමක් නැහැ. පිටුව 3 සහ 5 ක්‍රම දෙක ආයෙත් බලලා ආයෙ උත්සාහ කරන්න.";
+  const msg=right===Q.length?"සුපිරි! විභාගයේ දත්ත සමුදා ප්‍රශ්නවලට ඔබ ලෑස්තියි.":right>=11?"හොඳයි! වැරදුණ ප්‍රශ්න පහළින් බලන්න.":right>=7?"නරක නැහැ. යතුරු සොයන ක්‍රමය තව පාරක් බලමු.":"කමක් නැහැ. ටියුට් එකේ පිටු 3 සහ 5 ක්‍රම දෙක නැවත බලා ආයෙ උත්සාහ කරන්න.";
   const res=`ICT පාඩම 09 ක්‍රීඩාව\nනම: ${name}\nලකුණු: ${score}\nහරි: ${right} / ${Q.length}`;
   topEl.textContent=`${name} · ${score} ලකුණු`;
   app.innerHTML=`<p class="muted">අවසාන ලකුණු</p><div class="big">${score}</div>
@@ -186,11 +227,12 @@ function finish(){
   <div class="row"><button class="primary" id="cp">ප්‍රතිඵලය copy කරන්න</button><button class="ghost" id="again">නැවත කරන්න</button></div>
   <p id="cpmsg" class="muted" aria-live="polite"></p>
   <p class="muted">ප්‍රශ්න අනුව:</p>
-  <ol class="review">${Q.map((q,k)=>`<li><span class="${log[k]?"v":"x"}">${log[k]?"✓":"✗"}</span> ${esc(q.q.length>70?q.q.slice(0,70)+"…":q.q)}</li>`).join("")}</ol>`;
+  <ol class="review">${Q.map((q,k)=>`<li><span class="${log[k]?"v":"x"}">${log[k]?"✓":"✗"}</span> ${esc(q.q.length>80?q.q.slice(0,80)+"…":q.q)}</li>`).join("")}</ol>`;
+  window.scrollTo({top:0});
   document.getElementById("again").onclick=start;
   document.getElementById("cp").onclick=()=>{
     const m=document.getElementById("cpmsg");
-    const sel=()=>{const r=document.createRange();r.selectNodeContents(document.getElementById("res"));const s=getSelection();s.removeAllRanges();s.addRange(r);m.textContent="Text එක select කළා. Copy කරලා chat එකට paste කරන්න."};
+    const sel=()=>{const r=document.createRange();r.selectNodeContents(document.getElementById("res"));const s=getSelection();s.removeAllRanges();s.addRange(r);m.textContent="Text එක select කළා. Copy කර chat එකට paste කරන්න."};
     try{navigator.clipboard.writeText(res).then(()=>m.textContent="Copy කළා! දැන් class chat එකට paste කරන්න.",sel)}catch(e){sel()}
   };
 }
