@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Database Key Quest</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Lexend:wght@400;500;600&family=Noto+Sans+Sinhala:wght@400;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: notebook-grid ground; one rounded game card per screen; HUD with progress dots on top; scenario sheet (collapsible) above each question */
+:root{
+  --bg:#EDF2FB; --dot:#D3DDF0; --card:#FFFFFF; --soft:#F5F8FE; --ink:#18213D; --muted:#56628A; --line:#D5DDEE;
+  --brand:#FF7A2F; --brand-deep:#D85A12; --accent-text:#C24E0C; --brand-ink:#2A1200;
+  --ok:#17914B; --bad:#D93B42; --mid:#C98300;
+  --t1:#D9423A; --t2:#2A6AD4; --t3:#7B4FD6; --t4:#23874A; --t-ink:#FFFFFF; --t-deep:rgba(0,0,0,.28);
+  --h-mcq:#2A6AD4; --h-pick:#FF7A2F; --h-tf:#0E9F9A; --h-match:#7B4FD6; --h-rows:#D9423A; --h-fill:#23874A; --h-multi:#C98300;
+  --display:"Fredoka","Noto Sans Sinhala",system-ui,sans-serif;
+  --body:"Lexend","Noto Sans Sinhala","Iskoola Pota",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#11162A; --dot:#1E2644; --card:#1B2240; --soft:#151B34; --ink:#EEF1FF; --muted:#A0AACC; --line:#2D3660;
+  --brand:#FF8A45; --brand-deep:#C2520F; --accent-text:#FF9A5C; --brand-ink:#2A1200; --ok:#3FCF7F; --bad:#FF6B70; --mid:#F2B33D; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#11162A; --dot:#1E2644; --card:#1B2240; --soft:#151B34; --ink:#EEF1FF; --muted:#A0AACC; --line:#2D3660;
+  --brand:#FF8A45; --brand-deep:#C2520F; --accent-text:#FF9A5C; --brand-ink:#2A1200; --ok:#3FCF7F; --bad:#FF6B70; --mid:#F2B33D; color-scheme:dark}
+*{box-sizing:border-box}
+body{background-color:var(--bg);background-image:radial-gradient(var(--dot) 1.2px,transparent 1.6px);background-size:22px 22px;color:var(--ink);
+  font-family:var(--body);font-size:17px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:18px 48px}
+.wrap{max-width:880px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+p{margin:0}
+.hud{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:600;font-size:15px;color:var(--muted)}
+.pills{display:flex;gap:8px;flex-wrap:wrap}
+.pill{font-family:var(--display);font-weight:600;font-size:15px;background:var(--card);border:1px solid var(--line);border-radius:99px;padding:4px 12px;font-variant-numeric:tabular-nums}
+.pill.hot{background:var(--brand);color:var(--brand-ink);border-color:var(--brand)}
+.dots{display:flex;gap:6px;flex-wrap:wrap}
+.dots i{width:12px;height:12px;border-radius:50%;background:var(--line)}
+.dots i.cur{background:var(--card);box-shadow:0 0 0 3px var(--brand)}
+.dots i.ok{background:var(--ok)} .dots i.part{background:var(--mid)} .dots i.bad{background:var(--bad)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:22px;display:flex;flex-direction:column;gap:16px;box-shadow:0 6px 0 var(--line)}
+@media (max-width:520px){.card{padding:16px;border-radius:18px}}
+h1{font-family:var(--display);font-size:clamp(34px,7vw,52px);line-height:1.1;margin:0;font-weight:700;text-wrap:balance}
+h2{font-family:var(--display);font-size:clamp(19px,3.4vw,23px);line-height:1.5;margin:0;font-weight:600}
+.sub{color:var(--muted);font-weight:500}
+.muted{color:var(--muted)}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:7px;font-family:var(--display);font-weight:600;font-size:14px;padding:4px 12px 4px 10px;border-radius:99px;
+  background:color-mix(in srgb,var(--h) 16%,var(--card));color:var(--ink);border:1px solid color-mix(in srgb,var(--h) 40%,var(--card))}
+.chip::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--h)}
+.facts{display:flex;gap:10px;flex-wrap:wrap}
+.fact{font-family:var(--display);font-weight:600;background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:8px 14px}
+label{font-family:var(--display);font-weight:600}
+input{width:100%;font:inherit;padding:14px 16px;border-radius:14px;border:2px solid var(--line);background:var(--soft);color:var(--ink)}
+input:focus{border-color:var(--brand);outline:none}
+button{font:inherit;cursor:pointer;border:0;color:inherit;background:none}
+button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
+.btn{font-family:var(--display);font-weight:600;font-size:19px;border-radius:16px;padding:13px 26px;transition:transform .08s,box-shadow .08s}
+.btn:active:not(:disabled){transform:translateY(3px)}
+.primary{background:var(--brand);color:var(--brand-ink);box-shadow:0 5px 0 var(--brand-deep);align-self:flex-start}
+.primary:active:not(:disabled){box-shadow:0 2px 0 var(--brand-deep)}
+.primary:disabled{opacity:.45;cursor:not-allowed}
+.ghost{border:2px solid var(--line);background:var(--card)}
+.qhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.qno{font-family:var(--display);font-weight:600;color:var(--muted);font-size:15px}
+.ring{margin-left:auto;position:relative;width:52px;height:52px;flex:none}
+.ring svg{transform:rotate(-90deg)}
+.ring b{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--display);font-size:15px;font-variant-numeric:tabular-nums}
+.ring .tr{stroke:var(--line)} .ring .fg{stroke:var(--h-tf);transition:stroke-dashoffset .2s linear}
+.ring.low .fg{stroke:var(--bad)}
+details.scen{background:var(--soft);border:1px solid var(--line);border-radius:16px;min-width:0}
+details.scen summary{cursor:pointer;padding:10px 14px;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;list-style:none}
+details.scen summary::-webkit-details-marker{display:none}
+details.scen summary::after{content:"▾";margin-left:auto;color:var(--muted)}
+details.scen:not([open]) summary::after{content:"▸"}
+.range{font-family:var(--display);font-weight:600;color:var(--accent-text)}
+.stitle{font-weight:600}
+.sbody{padding:0 14px 14px;display:flex;flex-direction:column;gap:12px}
+.intro{font-size:15.5px}
+.note{font-size:14.5px;color:var(--muted)} .note b{color:var(--ink)}
+.tables{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--card);min-width:0}
+.tbl .tn{font-size:13.5px;padding:6px 10px;color:var(--muted);border-bottom:1px solid var(--line);display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.tbl .tn b{font-family:var(--mono);color:var(--ink)}
+.tapme{margin-left:auto;font-family:var(--display);font-weight:600;font-size:12.5px;background:var(--brand);color:var(--brand-ink);border-radius:99px;padding:1px 10px}
+.tbl.pickme{border:2px solid var(--brand);box-shadow:0 0 0 4px color-mix(in srgb,var(--brand) 18%,transparent)}
+table{border-collapse:collapse;width:100%;font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums}
+th,td{padding:6px 10px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--line)}
+tbody tr:last-child td{border-bottom:0}
+th{color:var(--accent-text);font-weight:700}
+.colbtn{font-family:var(--mono);font-weight:700;font-size:13px;padding:5px 9px;border-radius:8px;border:2px dashed var(--brand);color:inherit}
+.pickme td{cursor:pointer}
+.pickme th.on .colbtn{background:var(--brand);color:var(--brand-ink);border-style:solid}
+.pickme td.on{background:color-mix(in srgb,var(--brand) 18%,transparent)}
+.pickme th.good .colbtn{background:var(--ok);border:2px solid var(--ok);color:#fff}
+.pickme th.bad .colbtn{background:var(--bad);border:2px solid var(--bad);color:#fff}
+.pickme th.miss .colbtn{border:2px dashed var(--ok);color:var(--ok);background:transparent}
+.qtext .num{color:var(--accent-text)}
+.stmts{display:flex;flex-direction:column;gap:6px;background:var(--soft);border-radius:12px;padding:12px 14px}
+.stmts b{font-family:var(--display);color:var(--accent-text)}
+.how{font-size:14.5px;color:var(--muted);display:flex;gap:8px;align-items:flex-start}
+.how::before{content:"";flex:none;width:10px;height:10px;margin-top:7px;border-radius:3px;background:var(--h)}
+.answers{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:600px){.answers{grid-template-columns:1fr}}
+.ans{display:flex;gap:10px;align-items:center;text-align:left;padding:14px 16px;color:var(--t-ink);font-weight:600;min-height:62px;line-height:1.4;border-radius:16px;box-shadow:0 5px 0 var(--t-deep);transition:transform .08s,box-shadow .08s,opacity .2s}
+.ans:active:not(:disabled){transform:translateY(3px);box-shadow:0 2px 0 var(--t-deep)}
+.ans .sh{font-size:18px;flex:none;width:20px;text-align:center}
+.ans .no{font-family:var(--display);flex:none;opacity:.9}
+.ans span{min-width:0}
+.ans.c0{background:var(--t1)}.ans.c1{background:var(--t2)}.ans.c2{background:var(--t3)}.ans.c3{background:var(--t4)}
+.ans:disabled{cursor:default}
+.ans.dim{opacity:.3}
+.ans.right{outline:4px solid var(--ok);outline-offset:3px;opacity:1}
+.ans.wrong{outline:4px solid var(--bad);outline-offset:3px}
+.tfgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tfgrid .ans{justify-content:center;font-family:var(--display);font-size:22px;min-height:84px}
+.opts{display:flex;flex-direction:column;gap:10px}
+.opt{display:flex;gap:12px;align-items:center;text-align:left;padding:12px 14px;border:2px solid var(--line);border-radius:14px;background:var(--card);font-weight:500}
+.opt .box{flex:none;width:24px;height:24px;border-radius:7px;border:2px solid var(--muted);display:grid;place-items:center;font-size:15px;line-height:1}
+.opt.on{border-color:var(--h-multi);background:color-mix(in srgb,var(--h-multi) 12%,var(--card))}
+.opt.on .box{background:var(--h-multi);border-color:var(--h-multi);color:#fff}
+.opt.on .box::after{content:"✓"}
+.opt.good{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 14%,var(--card))}
+.opt.bad{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 14%,var(--card))}
+.opt.miss{border-style:dashed;border-color:var(--ok)}
+.rlist{display:flex;flex-direction:column;gap:10px}
+.rhead{font-family:var(--mono);font-size:13px;color:var(--muted)}
+.rrow{border:2px solid var(--line);border-radius:14px;padding:10px 12px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.rrow code{font-family:var(--mono);font-size:14px;font-weight:700}
+.seg{display:flex;gap:8px}
+.seg button{font-family:var(--display);font-weight:600;padding:7px 14px;border-radius:12px;border:2px solid var(--line);background:var(--card)}
+.seg button.on[data-v="1"]{background:var(--ok);border-color:var(--ok);color:#fff}
+.seg button.on[data-v="0"]{background:var(--bad);border-color:var(--bad);color:#fff}
+.rrow.good{border-color:var(--ok)} .rrow.bad{border-color:var(--bad)}
+.why{flex-basis:100%;font-size:14px;color:var(--muted)}
+.why b{color:var(--ink)}
+.flist{display:flex;flex-direction:column;gap:12px}
+.frow{border:2px solid var(--line);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.frow p{font-weight:600}
+.frow .chips button{font-family:var(--display);font-weight:600;font-size:15px;padding:6px 13px;border-radius:12px;border:2px solid var(--line);background:var(--card)}
+.frow .chips button.on{background:var(--h-fill);border-color:var(--h-fill);color:#fff}
+.frow .chips button.good{background:var(--ok);border-color:var(--ok);color:#fff}
+.frow .chips button.bad{background:var(--bad);border-color:var(--bad);color:#fff}
+.frow .chips button.miss{border:2px dashed var(--ok);color:var(--ok)}
+.frow.good{border-color:var(--ok)} .frow.bad{border-color:var(--bad)}
+.mgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:600px){.mgrid{grid-template-columns:1fr}}
+.mcol{display:flex;flex-direction:column;gap:10px;min-width:0}
+.mcol h3{margin:0;font-family:var(--display);font-size:14px;font-weight:600;color:var(--muted)}
+.mi{display:flex;gap:10px;align-items:center;text-align:left;padding:11px 12px;border:2px solid var(--line);border-radius:14px;background:var(--card);font-weight:500;min-height:52px}
+.mi .tag{flex:none;width:28px;height:28px;border-radius:9px;display:grid;place-items:center;font-family:var(--display);font-weight:700;background:var(--soft);border:2px solid var(--line)}
+.mi.cur{border-color:var(--brand);box-shadow:0 0 0 4px color-mix(in srgb,var(--brand) 22%,transparent)}
+.mi.p0{border-color:var(--t1)}.mi.p0 .tag{background:var(--t1);border-color:var(--t1);color:#fff}
+.mi.p1{border-color:var(--t2)}.mi.p1 .tag{background:var(--t2);border-color:var(--t2);color:#fff}
+.mi.p2{border-color:var(--t3)}.mi.p2 .tag{background:var(--t3);border-color:var(--t3);color:#fff}
+.mi.p3{border-color:var(--t4)}.mi.p3 .tag{background:var(--t4);border-color:var(--t4);color:#fff}
+.mi.good{outline:3px solid var(--ok);outline-offset:2px} .mi.bad{outline:3px solid var(--bad);outline-offset:2px}
+.mi small{display:block;color:var(--ok);font-size:13px}
+.picked{font-size:15px}
+.picked b{font-family:var(--mono)}
+.feedback{border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;border:2px solid var(--line)}
+.feedback .fh{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.feedback .fh b{font-family:var(--display);font-size:24px}
+.feedback .fh span{font-family:var(--display);font-weight:600;font-size:18px}
+.feedback.ok{background:color-mix(in srgb,var(--ok) 13%,var(--card));border-color:var(--ok)} .feedback.ok b{color:var(--ok)}
+.feedback.part{background:color-mix(in srgb,var(--mid) 13%,var(--card));border-color:var(--mid)} .feedback.part b{color:var(--mid)}
+.feedback.no{background:color-mix(in srgb,var(--bad) 11%,var(--card));border-color:var(--bad)} .feedback.no b{color:var(--bad)}
+.pop{animation:pop .35s ease-out}
+@keyframes pop{0%{transform:scale(.9);opacity:.3}100%{transform:scale(1);opacity:1}}
+.stars{display:flex;gap:8px}
+.star{width:44px;height:44px;background:var(--line);clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)}
+.star.on{background:var(--mid)}
+.big{font-family:var(--display);font-size:clamp(56px,13vw,88px);font-weight:700;line-height:1;font-variant-numeric:tabular-nums;color:var(--brand)}
+.result{font-family:var(--mono);font-size:13.5px;background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:12px;white-space:pre-wrap;user-select:all}
+.row{display:flex;gap:12px;flex-wrap:wrap}
+ol.review{margin:0;padding-left:28px;display:flex;flex-direction:column;gap:6px;font-size:14.5px}
+ol.review .s{font-family:var(--display);font-weight:700;margin-right:6px}
+ol.review .ok{color:var(--ok)} ol.review .part{color:var(--mid)} ol.review .bad{color:var(--bad)}
+.foot{font-size:13px;color:var(--muted)}
+#fx{position:fixed;inset:0;pointer-events:none;z-index:10}
+@media (prefers-reduced-motion:reduce){.pop{animation:none}.btn,.ans,.ring .fg{transition:none}}
+</style>
+</head>
+<body>
+
+<canvas id="fx"></canvas>
+<div class="wrap">
+  <div class="hud"><span class="brand" id="brand"></span><div class="pills" id="pills"></div></div>
+  <div class="dots" id="dots" hidden></div>
+  <div class="card" id="app"></div>
+  <p class="foot">Nilupul Weerasinghe · Online O/L ICT · 076 135 5516</p>
+</div>
+
+<script>
+const LANG="en";
+const T=x=>(x&&typeof x==="object"&&!Array.isArray(x)&&("en" in x))?x[LANG]:x;
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const RM=matchMedia("(prefers-reduced-motion: reduce)").matches;
+const SH=["▲","◆","●","■"], LET=["A","B","C","D"];
+const TIME=90;
+
+const UIS={
+si:{brand:"ICT · පාඩම 09 · දත්ත සමුදාය",title:"යතුරු ක්‍රීඩාව",sub:"10 ශ්‍රේණිය · පාඩම 09 · දත්ත සමුදාය",
+ intro:"O/L ප්‍රශ්න පත්‍රයේ ආකෘතියෙන් ප්‍රශ්න 20ක්. බහුවරණ විතරක් නෙවෙයි. යතුර තට්ටු කරන, ගළපන, රෙකෝඩය භාර ගනී ද නැද්ද කියන ප්‍රශ්නත් තියෙනවා.",
+ facts:["ප්‍රශ්න 20","ප්‍රශ්න වර්ග 7","ප්‍රශ්නයකට විනාඩි 1½"],
+ rules:"ඉක්මනින් හරි උත්තර දුන්නොත් ලකුණු වැඩියි. දිගටම 3ක් සම්පූර්ණයෙන් හරි ගියොත් එක් එක් ප්‍රශ්නයට බෝනස් +100.",
+ typesL:"ඔබට හමු වන ප්‍රශ්න වර්ග",nameL:"ඔබේ නම",nameP:"උදා: Kavindu",start:"පටන් ගමු",
+ qOf:(a,b)=>`ප්‍රශ්නය ${a} / ${b}`,pts:"ලකුණු",streak:n=>`දිගටම හරි ×${n}`,
+ types:{mcq:"බහුවරණ",pick:"තීරුව තට්ටු කරන්න",tf:"සත්‍ය ද අසත්‍ය ද",match:"ගළපන්න",rows:"භාර ගනී ද?",fill:"එකින් එක තෝරන්න",multi:"අදාළ සියල්ල තෝරන්න"},
+ how:{mcq:"නිවැරදි පිළිතුර තට්ටු කරන්න.",pick:"ඉහත වර්ණ කළ වගුවේ තීරු නම් තට්ටු කරන්න. තීරු එකකට වඩා තේරිය හැකියි. පසුව 'පරීක්ෂා කරන්න' ඔබන්න.",tf:"ප්‍රකාශය කියවා සත්‍ය හෝ අසත්‍ය තෝරන්න.",match:"වම් පැත්තේ එකක් තට්ටු කර, ඊට ගැළපෙන දකුණු පැත්තේ එක තට්ටු කරන්න. වෙනස් කිරීමට නැවත තට්ටු කරන්න.",rows:"එක් එක් රෙකෝඩයට 'භාර ගනී' හෝ 'ප්‍රතික්ෂේප' තෝරන්න.",fill:"එක් එක් පේළියට නිවැරදි එක තෝරන්න.",multi:"අදාළ සියල්ල තෝරා 'පරීක්ෂා කරන්න' ඔබන්න."},
+ tapHere:"තට්ටු කරන්න",picked:"තෝරාගත්:",none:"තවම කිසිවක් නැත",
+ check:"පරීක්ෂා කරන්න",next:"ඊළඟ ප්‍රශ්නය",results:"ප්‍රතිඵලය බලන්න",
+ tru:"සත්‍ය",fls:"අසත්‍ය",acc:"භාර ගනී",rej:"ප්‍රතික්ෂේප",
+ ok:"නියමයි!",part:"හරි ගාණයි!",bad:"වැරදියි",time:"කාලය ඉවරයි!",ans:n=>`නිවැරදි උත්තරය (${n})`,bonus:"බෝනස් සමග",
+ mL:"1. මෙය තට්ටු කරන්න",mR:"2. ඊට ගැළපෙන එක",right:"නිවැරදි:",
+ final:"අවසාන ලකුණු",fully:(r,n)=>`ප්‍රශ්න ${n}න් ${r}ක් සම්පූර්ණයෙන් හරි`,
+ msgs:["කමක් නැහැ. ටියුට් එකේ පිටු 3 සහ 5 ක්‍රම දෙක නැවත බලා ආයෙ උත්සාහ කරන්න.","නරක නැහැ. යතුරු සොයන ක්‍රමය තව පාරක් බලමු.","හොඳයි! වැරදුණ ප්‍රශ්න පහළින් බලන්න.","සුපිරි! විභාගයේ දත්ත සමුදා ප්‍රශ්නවලට ඔබ ලෑස්තියි."],
+ copy:"ප්‍රතිඵලය copy කරන්න",again:"නැවත කරන්න",copied:"Copy කළා! දැන් class chat එකට paste කරන්න.",selected:"Text එක select කළා. Copy කර chat එකට paste කරන්න.",
+ review:"ප්‍රශ්න අනුව",resT:"ICT පාඩම 09 ක්‍රීඩාව",resName:"නම",resScore:"ලකුණු",resRight:"සම්පූර්ණයෙන් හරි"},
+en:{brand:"ICT · Lesson 09 · Databases",title:"Key Quest",sub:"Grade 10 · Lesson 09 · Databases",
+ intro:"20 questions in the O/L paper style. It's not just MCQs: you'll also tap keys in tables, match pairs, and decide whether records get accepted.",
+ facts:["20 questions","7 question types","1½ minutes each"],
+ rules:"Answer correctly and quickly for more points. Get 3 fully correct in a row and every question after that earns a +100 bonus.",
+ typesL:"Question types you'll meet",nameL:"Your name",nameP:"e.g. Kavindu",start:"Let's start",
+ qOf:(a,b)=>`Question ${a} of ${b}`,pts:"points",streak:n=>`Streak ×${n}`,
+ types:{mcq:"Multiple choice",pick:"Tap the column",tf:"True or false",match:"Match up",rows:"Accept or reject",fill:"Choose for each",multi:"Select all that apply"},
+ how:{mcq:"Tap the correct answer.",pick:"Tap the column names in the highlighted table above. You can pick more than one. Then press Check.",tf:"Read the statement and choose True or False.",match:"Tap an item on the left, then tap its match on the right. Tap again to change it.",rows:"Choose Accept or Reject for each record.",fill:"Choose the right answer for each row.",multi:"Select every correct option, then press Check."},
+ tapHere:"Tap here",picked:"Selected:",none:"nothing yet",
+ check:"Check",next:"Next question",results:"See my results",
+ tru:"True",fls:"False",acc:"Accept",rej:"Reject",
+ ok:"Nailed it!",part:"Almost!",bad:"Not quite",time:"Time's up!",ans:n=>`Correct answer: (${n})`,bonus:"with bonus",
+ mL:"1. Tap one of these",mR:"2. Then tap its match",right:"Correct:",
+ final:"Final score",fully:(r,n)=>`${r} of ${n} questions fully correct`,
+ msgs:["No worries. Go over the key-finding steps on pages 3 and 5 of the tute and try again.","Not bad. Let's go over how to find keys one more time.","Good work! Check the questions you missed below.","Superb! You're ready for the database questions in the exam."],
+ copy:"Copy my result",again:"Play again",copied:"Copied! Now paste it in the class chat.",selected:"Text selected. Copy it and paste it in the class chat.",
+ review:"Question by question",resT:"ICT Lesson 09 quiz",resName:"Name",resScore:"Score",resRight:"Fully correct"}
+};
+const UI=UIS[LANG];
+
+/* ---------- Scenarios (shared context, O/L paper style) ---------- */
+const SC={
+ A:{range:{si:"ප්‍රශ්න 1 – 5",en:"Questions 1 – 5"},title:{si:"ටියුෂන් ආයතනය",en:"Tuition institute"},
+  intro:{si:"ප්‍රශ්න අංක 1 සිට 5 තෙක් පිළිතුරු සැපයීමට, ටියුෂන් ආයතනයක සිසුන්, පන්ති සහ ඔවුන් පන්තිවලට බැඳීම පිළිබඳ දත්ත ආචයනය කිරීමට භාවිත කරන පහත අර්ධ වශයෙන් පෙන්වා ඇති දත්ත සමුදා වගු සලකන්න.",
+         en:"Consider the following partially shown database tables, used by a tuition institute to store data about students, classes and the classes students have enrolled in, to answer questions 1 to 5."},
+  note:{si:"එක් සිසුවෙකුට පන්ති කිහිපයකට බැඳිය හැකි අතර, එක් පන්තියකට සිසුන් කිහිපදෙනෙකු සිටිය හැකි ය.",en:"A student can enrol in many classes, and a class can have many students."},
+  t:[{n:"STUDENT",s:{si:"සිසුවා",en:""},c:["Student_ID","Name","Phone"],r:[["ST01","Amal","0712345678"],["ST02","Fathima","0779876543"],["ST03","Nipun","0701122334"],["ST04","Senuri","0765544332"]]},
+     {n:"CLASS",s:{si:"පන්තිය",en:""},c:["Class_ID","Subject","Day"],r:[["C01","Mathematics","Saturday"],["C02","ICT","Sunday"],["C03","Science","Saturday"]]},
+     {n:"ENROLMENT",s:{si:"පන්තියට බැඳීම",en:""},c:["Student_ID","Class_ID","Join_date"],r:[["ST01","C02","05/01/2026"],["ST01","C01","05/01/2026"],["ST02","C01","06/01/2026"],["ST03","C02","08/01/2026"],["ST04","C03","10/01/2026"]]}]},
+ B:{range:{si:"ප්‍රශ්න 6 – 10",en:"Questions 6 – 10"},title:{si:"ප්‍රාදේශීය පුස්තකාලය",en:"Community library"},
+  intro:{si:"ප්‍රශ්න අංක 6 සිට 10 තෙක් පිළිතුරු සැපයීමට, ප්‍රාදේශීය පුස්තකාලයක සාමාජිකයින්, පොත් සහ පොත් ණයට දීම පිළිබඳ දත්ත ආචයනය කිරීමට භාවිත කරන පහත අර්ධ වශයෙන් පෙන්වා ඇති දත්ත සමුදා වගු සලකන්න.",
+         en:"Consider the following partially shown database tables, used by a community library to store data about members, books and book loans, to answer questions 6 to 10."},
+  note:{si:"Book_No මගින් පොතක් අනන්‍ය ව හඳුනා ගැනේ. එකම සාමාජිකයාට එකම පොත වෙනත් දිනයක නැවත ණයට ගත හැකි අතර, එක් දිනක පොත් කිහිපයක් ණයට ගත හැකි ය. NULL යනු අගයක් නොමැති බවයි.",
+        en:"Book_No identifies each book uniquely. A member can borrow the same book again on a different day, and can borrow several books on one day. NULL means there is no value yet."},
+  t:[{n:"MEMBER",s:{si:"සාමාජිකයා",en:""},c:["Member_ID","Name","Address"],r:[["M100","Saman","Kandy"],["M101","Raj","Jaffna"],["M103","Shane","Galle"]]},
+     {n:"BOOK",s:{si:"පොත",en:""},c:["Book_No","Title","Author"],r:[["B1111","ICT Made Easy","K. Perera"],["B2222","Sinhala Grammar","S. Silva"],["B3333","History of Lanka","M. Fernando"]]},
+     {n:"LOAN",s:{si:"ණයට දීම",en:""},c:["Member_ID","Book_No","Borrowed_Date","Return_Date"],r:[["M101","B2222","03/09/2026","16/09/2026"],["M100","B3333","03/09/2026","17/09/2026"],["M101","B1111","03/09/2026","17/09/2026"],["M100","B3333","20/09/2026","NULL"]]}]},
+ C:{range:{si:"ප්‍රශ්න 11 – 15",en:"Questions 11 – 15"},title:{si:"වාහන සේවා මධ්‍යස්ථානය",en:"Vehicle service centre"},
+  intro:{si:"ප්‍රශ්න අංක 11 සිට 15 තෙක් පිළිතුරු සැපයීමට, වාහන සේවා මධ්‍යස්ථානයක වාහන, ලබා දෙන සේවා සහ සේවා වාර පිළිබඳ දත්ත ආචයනය කිරීමට භාවිත කරන පහත අර්ධ වශයෙන් පෙන්වා ඇති දත්ත සමුදා වගු සලකන්න.",
+         en:"Consider the following partially shown database tables, used by a vehicle service centre to store data about vehicles, the services offered and each service carried out, to answer questions 11 to 15."},
+  note:{si:"එක් වාහනයකට සේවා කිහිපයක් ලබා ගත හැකි අතර, එක් සේවාවක් වාහන කිහිපයකට ලබා දිය හැකි ය. එකම වාහනයට එකම සේවාව වෙනස් දිනවල නැවත ලබා ගත හැකි ය.",
+        en:"A vehicle can get many services, and a service can be done for many vehicles. The same vehicle can get the same service again on a different date."},
+  t:[{n:"VEHICLE",s:{si:"වාහනය",en:""},c:["Vehicle_No","Owner_name","Model"],r:[["CAA-1234","Saman","Toyota Aqua"],["KX-5678","Nimal","Honda Vezel"],["CBB-9012","Fathima","Suzuki Alto"]]},
+     {n:"SERVICE",s:{si:"සේවාව",en:""},c:["Service_ID","Service_name","Price"],r:[["SV1","Oil change","4500.00"],["SV2","Wheel alignment","3000.00"],["SV3","Body wash","1500.00"]]},
+     {n:"SERVICE_RECORD",s:{si:"සේවා වාරය",en:""},c:["Vehicle_No","Service_ID","Service_date"],r:[["CAA-1234","SV1","02/03/2026"],["CAA-1234","SV3","02/03/2026"],["KX-5678","SV1","15/03/2026"],["CAA-1234","SV1","20/06/2026"]]}]},
+ D:{range:{si:"ප්‍රශ්න 16 – 20",en:"Questions 16 – 20"},title:{si:"සාමාන්‍ය සංකල්ප",en:"General concepts"},
+  intro:{si:"ප්‍රශ්න අංක 16 සිට 20 තෙක් දත්ත සමුදා පිළිබඳ සාමාන්‍ය සංකල්ප මත පදනම් වේ.",en:"Questions 16 to 20 are based on general database concepts."},t:[]}
+};
+
+/* ---------- Questions ---------- */
+const Q=[
+/* A: tuition */
+{s:"A",type:"pick",tbl:2,cols:[0,1],
+ q:{si:"ENROLMENT වගුවේ ප්‍රාථමික යතුර (primary key) සාදන තීරුව/තීරු තට්ටු කරන්න.",en:"Tap the column(s) that make up the primary key of the ENROLMENT table."},
+ e:{si:"Student_ID (ST01) සහ Class_ID (C01, C02) තනියම නැවත එනවා. ST01 + 05/01/2026 ද දෙපාරක් එනවා. Student_ID + Class_ID එකතුව කිසි පේළියක නැවත එන්නේ නැහැ. මැද වගුවේ ප්‍රාථමික යතුර = අනිත් වගු දෙකේ ප්‍රාථමික යතුරු දෙකේ එකතුව. මෙය සංයුක්ත ප්‍රාථමික යතුරකි (composite primary key).",
+   en:"Student_ID (ST01) and Class_ID (C01, C02) repeat on their own, and ST01 + 05/01/2026 also repeats. Only Student_ID + Class_ID together is different in every row. In a middle table, the primary key is usually the two foreign keys combined. This is a composite primary key."}},
+{s:"A",type:"mcq",
+ q:{si:"මෙම දත්ත සමුදායේ ආගන්තුක යතුරක් (foreign key) වන්නේ කුමක් ද?",en:"Which of the following is a foreign key in this database?"},
+ o:[{si:"ENROLMENT වගුවේ Class_ID",en:"Class_ID in the ENROLMENT table"},{si:"STUDENT වගුවේ Student_ID",en:"Student_ID in the STUDENT table"},{si:"CLASS වගුවේ Subject",en:"Subject in the CLASS table"},{si:"ENROLMENT වගුවේ Join_date",en:"Join_date in the ENROLMENT table"}],a:0,
+ e:{si:"ENROLMENT වගුවේ Class_ID, CLASS වගුවේ ප්‍රාථමික යතුරයි. ඒ නිසා ENROLMENT හි එය ආගන්තුක යතුරකි. STUDENT වගුවේ Student_ID එම වගුවේම ප්‍රාථමික යතුර නිසා එය ආගන්තුක යතුරක් නොවේ.",
+   en:"Class_ID in ENROLMENT is the primary key of the CLASS table, so it is a foreign key in ENROLMENT. Student_ID in the STUDENT table is that table's own primary key, not a foreign key."}},
+{s:"A",type:"multi",ans:[0,2],
+ q:{si:"Kavindu නම් නව සිසුවෙක් (Student_ID: ST05) ආයතනයට ඇතුළත් වී දැනට පවතින ICT පන්තියට (C02) බැඳේ. මේ සඳහා යාවත්කාලීන කළ යුතු සියලුම වගු තෝරන්න.",
+    en:"A new student, Kavindu (Student_ID: ST05), joins the institute and enrols in the existing ICT class (C02). Select ALL the tables that must be updated."},
+ o:["STUDENT","CLASS","ENROLMENT"],
+ e:{si:"නව සිසුවා නිසා STUDENT වගුවට පේළියක්. පන්තියට බැඳීම නිසා ENROLMENT වගුවට පේළියක්. ICT පන්තිය (C02) දැනටමත් තිබෙන නිසා CLASS වගුව වෙනස් නොවේ.",
+   en:"A new student means a new row in STUDENT. Enrolling in a class means a new row in ENROLMENT. The ICT class (C02) already exists, so CLASS does not change."}},
+{s:"A",type:"rows",tbl:2,
+ q:{si:"පහත රෙකෝඩ ENROLMENT වගුවට ඇතුළත් කිරීමට උත්සාහ කෙරේ. දත්ත සමුදාය එක් එක් රෙකෝඩය භාර ගනී ද, ප්‍රතික්ෂේප කරයි ද?",en:"The following records are to be inserted into the ENROLMENT table. Will the database accept or reject each one?"},
+ rows:[{v:["ST02","C03","12/01/2026"],a:1,why:{si:"ST02 සහ C03 දෙකම තිබේ. ST02 + C03 අලුත් එකකි.",en:"ST02 and C03 both exist, and ST02 + C03 is new."}},
+       {v:["ST01","C02","15/01/2026"],a:0,why:{si:"ST01 + C02 දැනටමත් තිබේ. ප්‍රාථමික යතුරේ අගය අනුපිටපත් විය නොහැක.",en:"ST01 + C02 already exists. A primary key value cannot be repeated."}},
+       {v:["ST09","C01","12/01/2026"],a:0,why:{si:"ST09 STUDENT වගුවේ නැත. ආගන්තුක යතුරේ අගය ප්‍රධාන වගුවේ කලින්ම තිබිය යුතුයි.",en:"ST09 is not in the STUDENT table. A foreign key value must already exist in the main table."}},
+       {v:["ST03","C01","14/01/2026"],a:1,why:{si:"ST03 සහ C01 දෙකම තිබේ. ST03 + C01 අලුත් එකකි.",en:"ST03 and C01 both exist, and ST03 + C01 is new."}}],
+ e:{si:"රෙකෝඩයක් භාර ගන්න නම්: ① ප්‍රාථමික යතුරේ අගය අලුත් විය යුතුයි ② ආගන්තුක යතුරු අගයන් ප්‍රධාන වගුවල තිබිය යුතුයි.",en:"To be accepted, a record needs ① a primary key value that is new, and ② foreign key values that already exist in the main tables."}},
+{s:"A",type:"mcq",
+ q:{si:"ගණිතය (Mathematics) පන්තියට බැඳී ඇති සිසුන්ගේ නම් පෙන්වා දැක්වීමට අවශ්‍ය ය. මෙම අවශ්‍යතාවය සඳහා කුමන වගු සම්බන්ධ කරගත යුතු ද?",en:"The names of the students enrolled in the Mathematics class need to be displayed. Which tables must be joined for this?"},
+ o:[{si:"CLASS පමණක්",en:"CLASS only"},{si:"STUDENT සහ ENROLMENT පමණක්",en:"STUDENT and ENROLMENT only"},{si:"STUDENT, ENROLMENT සහ CLASS",en:"STUDENT, ENROLMENT and CLASS"},{si:"ENROLMENT සහ CLASS පමණක්",en:"ENROLMENT and CLASS only"}],a:2,
+ e:{si:"'Mathematics' යන නම තියෙන්නේ CLASS වගුවේ. සිසුන්ගේ නම් තියෙන්නේ STUDENT වගුවේ. ඒ දෙක යා කරන්නේ ENROLMENT. ඒ නිසා වගු තුනම අවශ්‍යයි.",
+   en:"The word 'Mathematics' is in the CLASS table and the names are in the STUDENT table. ENROLMENT links them, so all three tables are needed."}},
+/* B: library */
+{s:"B",type:"pick",tbl:2,cols:[0,1,2],
+ q:{si:"LOAN වගුවේ ප්‍රාථමික යතුර (primary key) සාදන තීරුව/තීරු තට්ටු කරන්න.",en:"Tap the column(s) that make up the primary key of the LOAN table."},
+ e:{si:"M100 + B3333 දෙපාරක් එනවා (දින දෙකක). M101 + 03/09/2026 ද දෙපාරක් එනවා. Member_ID + Book_No + Borrowed_Date තුනම එකතු කළ විට පමණයි හැම පේළියක්ම අනන්‍ය වන්නේ. Return_Date හිස් (NULL) විය හැකි නිසා එය යතුරේ කොටසක් විය නොහැක.",
+   en:"M100 + B3333 appears twice (on two dates), and M101 + 03/09/2026 also appears twice. Only Member_ID + Book_No + Borrowed_Date together is unique in every row. Return_Date can be empty (NULL), so it can't be part of the key."}},
+{s:"B",type:"mcq",
+ q:{si:"Member_ID M100 වන සාමාජිකයා ණයට ගත් පොත්වල නම් (Title) පෙන්වා දැක්වීමට අවශ්‍ය ය. මෙම අවශ්‍යතාවය සඳහා කුමන වගු සම්බන්ධ කරගත යුතු ද?",en:"The titles of the books borrowed by the member with Member_ID M100 need to be displayed. Which tables must be joined for this?"},
+ o:[{si:"LOAN පමණක්",en:"LOAN only"},{si:"LOAN සහ BOOK පමණක්",en:"LOAN and BOOK only"},{si:"BOOK පමණක්",en:"BOOK only"},{si:"MEMBER, LOAN සහ BOOK",en:"MEMBER, LOAN and BOOK"}],a:1,
+ e:{si:"Member_ID (M100) LOAN වගුවේම තිබෙනවා. එතනින් Book_No හරහා BOOK වගුවට ගොස් Title ගන්නවා. සාමාජිකයාගේ නම දී තිබුණා නම් පමණයි MEMBER වගුවත් අවශ්‍ය වන්නේ. ප්‍රශ්න 5 සමග සසඳන්න.",
+   en:"Member_ID (M100) is already in the LOAN table. From there, Book_No leads to the BOOK table for the Title. MEMBER would only be needed if you were given the member's name. Compare this with question 5."}},
+{s:"B",type:"fill",opts:["MEMBER","BOOK","LOAN"],
+ q:{si:"පහත නව ක්ෂේත්‍ර (fields) දත්ත සමුදායට එකතු කිරීමට අවශ්‍ය ය. එක් එක් ක්ෂේත්‍රය එකතු කළ යුතු වගුව තෝරන්න.",en:"The following new fields are to be added to the database. Choose the table each field should be added to."},
+ items:[{t:{si:"එක් එක් පොතේ පිටු ගණන (Pages)",en:"Number of pages in each book (Pages)"},a:1},
+        {t:{si:"සාමාජිකයාගේ දුරකථන අංකය (Phone)",en:"The member's phone number (Phone)"},a:0},
+        {t:{si:"පොතක් ප්‍රමාද වී භාර දුන් විට එම ණයට අය කරන දඩ මුදල (Fine)",en:"The fine charged when a loan is returned late (Fine)"},a:2},
+        {t:{si:"පොතේ ප්‍රකාශකයා (Publisher)",en:"The publisher of each book (Publisher)"},a:1}],
+ e:{si:"'මේ අගය කාගේ දේපළද?' කියා අහන්න. පිටු ගණන සහ ප්‍රකාශකයා පොතට අයිතියි (BOOK). දුරකථනය සාමාජිකයාට අයිතියි (MEMBER). දඩය එක් නිශ්චිත ණයට අයිතියි (LOAN).",
+   en:"Ask 'whose property is this?' Pages and publisher belong to the book (BOOK). The phone number belongs to the member (MEMBER). A fine belongs to one particular loan (LOAN)."}},
+{s:"B",type:"tf",a:true,
+ q:{si:"LOAN වගුවේ Member_ID තීරුවේ එකම අගය කිහිප වතාවක් තිබිය හැකි ය.",en:"In the LOAN table, the same value can appear more than once in the Member_ID column."},
+ e:{si:"Member_ID යනු LOAN වගුවේ ආගන්තුක යතුරකි. එක් සාමාජිකයෙකුට කිහිප වතාවක් ණයට ගත හැකි නිසා M100 සහ M101 දෙපාර බැගින් එනවා. අනන්‍ය විය යුත්තේ ප්‍රාථමික යතුරේ අගය පමණයි.",
+   en:"Member_ID is a foreign key in LOAN. A member can borrow many times, so M100 and M101 each appear twice. Only primary key values have to be unique."}},
+{s:"B",type:"mcq",
+ q:{si:"M100 සාමාජිකයා B3333 පොත 25/09/2026 දින නැවත භාර දෙයි. මෙම අවස්ථාවේදී යාවත්කාලීන කළ යුත්තේ කුමන වගුව/වගු ද?",en:"Member M100 returns book B3333 on 25/09/2026. Which table(s) must be updated?"},
+ o:[{si:"MEMBER පමණක්",en:"MEMBER only"},{si:"BOOK පමණක්",en:"BOOK only"},{si:"BOOK සහ LOAN",en:"BOOK and LOAN"},{si:"LOAN පමණක්",en:"LOAN only"}],a:3,
+ e:{si:"භාර දුන් දිනය ලියන්නේ LOAN වගුවේ අදාළ පේළියේ Return_Date තීරුවට (දැනට NULL). සාමාජිකයාගේ හෝ පොතේ විස්තර වෙනස් වෙන්නේ නැහැ.",
+   en:"The return date goes into the Return_Date column of that row in LOAN (currently NULL). Nothing about the member or the book changes."}},
+/* C: vehicle service */
+{s:"C",type:"mcq",
+ q:{si:"VEHICLE සහ SERVICE වගු අතර සම්බන්ධතාවය කුමක් ද?",en:"What is the relationship between the VEHICLE and SERVICE tables?"},
+ o:[{si:"එකට-එක (one to one)",en:"One to one"},{si:"එකට-බහු (one to many)",en:"One to many"},{si:"බහු-බහු (many to many)",en:"Many to many"},{si:"සම්බන්ධතාවයක් නොමැත",en:"There is no relationship"}],a:2,
+ e:{si:"වාහනයකට සේවා කිහිපයක්, සේවාවකට වාහන කිහිපයක්. ඒ නිසා බහු-බහු. එය එකට-බහු සම්බන්ධතා දෙකකට කඩන්න මැද වගුව ලෙස SERVICE_RECORD භාවිත කරනවා.",
+   en:"A vehicle has many services and a service is done for many vehicles, so it is many to many. SERVICE_RECORD is the middle table that splits it into two one-to-many relationships."}},
+{s:"C",type:"fill",opts:[{si:"පෙළ (Text)",en:"Text"},{si:"සංඛ්‍යා (Number)",en:"Number"},{si:"මුදල් (Currency)",en:"Currency"},{si:"දිනය/වේලාව (Date/Time)",en:"Date/Time"},{si:"ඔව්/නැත (Yes/No)",en:"Yes/No"}],
+ q:{si:"පහත ක්ෂේත්‍ර (fields) සඳහා වඩාත් උචිත දත්ත ප්‍රරූපය (data type) තෝරන්න.",en:"Choose the most suitable data type for each of the following fields."},
+ items:[{t:{si:"Vehicle_No (උදා: CAA-1234)",en:"Vehicle_No (e.g. CAA-1234)"},a:0},
+        {t:{si:"Price (උදා: 4500.00)",en:"Price (e.g. 4500.00)"},a:2},
+        {t:{si:"Service_date (උදා: 02/03/2026)",en:"Service_date (e.g. 02/03/2026)"},a:3},
+        {t:{si:"Paid: බිල ගෙවා ඇත් ද නැද්ද (නව ක්ෂේත්‍රය)",en:"Paid: whether the bill has been paid (new field)"},a:4}],
+ e:{si:"අකුරු සහ ඉලක්කම් මිශ්‍ර අංක, ID → පෙළ (Text). මුදල් අගය → මුදල් (Currency). දිනය → දිනය/වේලාව (Date/Time). ඔව් හෝ නැත පමණක් → ඔව්/නැත (Yes/No).",
+   en:"Codes mixing letters and numbers, and IDs → Text. Money → Currency. A date → Date/Time. Only yes or no → Yes/No."}},
+{s:"C",type:"pick",tbl:2,cols:[0,1],
+ q:{si:"SERVICE_RECORD වගුවේ ආගන්තුක යතුරු (foreign keys) වන තීරු සියල්ල තට්ටු කරන්න.",en:"Tap ALL the columns that are foreign keys in the SERVICE_RECORD table."},
+ e:{si:"Vehicle_No යනු VEHICLE වගුවේ ප්‍රාථමික යතුරයි. Service_ID යනු SERVICE වගුවේ ප්‍රාථමික යතුරයි. ඒ නිසා SERVICE_RECORD හි ඒ දෙකම ආගන්තුක යතුරු. Service_date වෙනත් කිසිම වගුවක ප්‍රාථමික යතුරක් නොවේ.",
+   en:"Vehicle_No is the primary key of VEHICLE, and Service_ID is the primary key of SERVICE, so both are foreign keys in SERVICE_RECORD. Service_date is not the primary key of any other table."}},
+{s:"C",type:"mcq",
+ q:{si:"එක් එක් සේවා වාරය කාර්මිකයෙකුට (mechanic) පැවරීමට තීරණය කෙරේ. එක් කාර්මිකයෙකුට සේවා වාර කිහිපයක් කළ හැකි ය. දත්ත අනුපිටපත් නොකරමින් කාර්මිකයාගේ නම සහ දුරකථන අංකය ආචයනය කිරීමට වඩාත් සුදුසු ක්‍රමය කුමක් ද?",
+    en:"Each service carried out is to be assigned to a mechanic. One mechanic can do many services. What is the best way to store each mechanic's name and phone number without duplicating data?"},
+ o:[{si:"MECHANIC(M_id, M_name, M_phone) නව වගුව සාදා, SERVICE_RECORD වගුවට M_id එකතු කිරීම",en:"Create a new table MECHANIC(M_id, M_name, M_phone) and add M_id to SERVICE_RECORD"},
+    {si:"SERVICE_RECORD වගුවට M_name සහ M_phone ක්ෂේත්‍ර එකතු කිරීම",en:"Add M_name and M_phone fields to SERVICE_RECORD"},
+    {si:"MECHANIC(M_id, M_name, M_phone) නව වගුව සාදා, VEHICLE වගුවට M_phone එකතු කිරීම",en:"Create a new table MECHANIC(M_id, M_name, M_phone) and add M_phone to VEHICLE"},
+    {si:"SERVICE වගුවට M_name සහ M_phone ක්ෂේත්‍ර එකතු කිරීම",en:"Add M_name and M_phone fields to SERVICE"}],a:0,
+ e:{si:"නම සහ දුරකථනය එක තැනක (MECHANIC වගුවේ) පමණයි. SERVICE_RECORD වගුවට M_id ආගන්තුක යතුරක් ලෙස එකතු කරනවා. 2023, 2024, 2025 II පත්‍රයේ ආව රටාවමයි.",
+   en:"The name and phone are stored in one place only (the MECHANIC table), and M_id is added to SERVICE_RECORD as a foreign key. This is the same pattern as Paper II in 2023, 2024 and 2025."}},
+{s:"C",type:"tf",a:false,
+ q:{si:"සේවාවක් ලබා ගත් එක් එක් අවස්ථාවේ වාහනයේ කිලෝමීටර් කියවීම (Mileage) ආචයනය කිරීමට, Mileage ක්ෂේත්‍රය VEHICLE වගුවට එකතු කළ යුතු ය.",en:"To store the vehicle's mileage at each service, a Mileage field should be added to the VEHICLE table."},
+ e:{si:"කිලෝමීටර් කියවීම හැම සේවා වාරයකටම වෙනස්. VEHICLE වගුවේ එක් වාහනයකට ඇත්තේ එක පේළියක් පමණයි. ඒ නිසා එය SERVICE_RECORD වගුවට අයිතියි.",
+   en:"The mileage is different at every service, but VEHICLE has only one row per vehicle. So Mileage belongs in SERVICE_RECORD."}},
+/* D: general */
+{s:"D",type:"match",
+ q:{si:"එක් එක් DBMS වස්තුව එහි කාර්යය සමග ගළපන්න.",en:"Match each DBMS object to what it is used for."},
+ L:[{si:"වගුව (Table)",en:"Table"},{si:"විමසුම (Query)",en:"Query"},{si:"දත්ත ආකෘතිය (Form)",en:"Form"},{si:"වාර්තාව (Report)",en:"Report"}],
+ R:[{si:"දත්ත ආචයනය කර තබා ගැනීම",en:"Stores the data"},{si:"කොන්දේසියකට අනුව දත්ත සොයා ගැනීම",en:"Finds data that meets a condition"},{si:"දත්ත එකින් එක පහසුවෙන් ඇතුළත් කිරීම",en:"Makes entering data one record at a time easy"},{si:"දත්ත මුද්‍රණයට සකසා ඉදිරිපත් කිරීම",en:"Presents data neatly for printing"}],
+ e:{si:"වගුව තබයි · විමසුම සොයයි · ආකෘතිය ඇතුළු කරයි · වාර්තාව පෙන්වයි.",en:"Table stores · Query finds · Form enters · Report presents."}},
+{s:"D",type:"match",
+ q:{si:"එක් එක් සම්බන්ධතා වර්ගය සුදුසු උදාහරණය සමග ගළපන්න.",en:"Match each type of relationship with a suitable example."},
+ L:[{si:"එකට-එක (one to one)",en:"One to one"},{si:"එකට-බහු (one to many)",en:"One to many"},{si:"බහු-බහු (many to many)",en:"Many to many"}],
+ R:[{si:"පුද්ගලයා – ජාතික හැඳුනුම්පත් අංකය",en:"Person – NIC number"},{si:"අම්මා – දරුවෝ",en:"Mother – children"},{si:"සිසුන් – ටියුෂන් පන්ති",en:"Students – tuition classes"}],
+ e:{si:"එක් කෙනෙකුට ජා.හැ. අංක එකයි (1:1). අම්මා එක්කෙනයි, දරුවෝ කිහිප දෙනෙක් (1:M). සිසුවෙකුට පන්ති කිහිපයක්, පන්තියකට සිසුන් කිහිපදෙනෙක් (M:M).",
+   en:"One person has one NIC number (1:1). One mother can have many children (1:M). A student attends many classes and a class has many students (M:M)."}},
+{s:"D",type:"mcq",
+ q:{si:"දත්ත සමුදා සම්බන්ධයෙන් පහත ප්‍රකාශ සලකන්න.",en:"Consider the following statements about databases."},
+ st:[{si:"A – අත්පුරුදු දත්ත සමුදා සමග සසඳන විට, ඉලෙක්ට්‍රොනික දත්ත සමුදායක දත්ත විශ්ලේෂණය පහසු හා වේගවත් වේ.",en:"A – Compared with manual databases, analysing data is easier and faster in an electronic database."},
+     {si:"B – ඉලෙක්ට්‍රොනික දත්ත සමුදායකට වඩා පහසුවෙන් අත්පුරුදු දත්ත සමුදායක දත්ත යාවත්කාලීන කළ හැකි ය.",en:"B – Data in a manual database can be updated more easily than in an electronic database."},
+     {si:"C – දත්ත සමතිරික්තතාව (data redundancy) අඩු වන විට දත්තවල නිරවද්‍යතාව වැඩි වේ.",en:"C – When data redundancy is reduced, the accuracy of the data increases."}],
+ q2:{si:"ඉහත ප්‍රකාශ අතුරින් නිවැරදි වන්නේ කවරක් ද?",en:"Which of the above statements is/are correct?"},
+ o:[{si:"A හා B පමණි",en:"A and B only"},{si:"A හා C පමණි",en:"A and C only"},{si:"B හා C පමණි",en:"B and C only"},{si:"A, B සහ C සියල්ලම",en:"All of A, B and C"}],a:1,
+ e:{si:"B යනු 2025 MCQ උගුලයි. යාවත්කාලීන කිරීම පහසු ඉලෙක්ට්‍රොනික දත්ත සමුදායේයි. එකම දත්තය එක තැනක පමණක් ඇති විට වැරදීමට ඉඩ අඩු නිසා C නිවැරදියි.",
+   en:"B is the 2025 MCQ trap: updating is easier in an electronic database. C is correct because when each piece of data is stored in only one place, there is less chance of mistakes."}},
+{s:"D",type:"mcq",
+ q:{si:"දත්ත සමුදා යතුරු (keys) සම්බන්ධයෙන් පහත ප්‍රකාශ සලකන්න.",en:"Consider the following statements about database keys."},
+ st:[{si:"A – ප්‍රාථමික යතුරු (primary key) ක්ෂේත්‍රයක අගය හිස්ව තැබිය හැකි ය.",en:"A – A primary key field can be left empty."},
+     {si:"B – ආගන්තුක යතුරු (foreign key) ක්ෂේත්‍රයක එකම අගය කිහිප වතාවක් තිබිය හැකි ය.",en:"B – The same value can appear more than once in a foreign key field."},
+     {si:"C – සංයුක්ත ප්‍රාථමික යතුරක් (composite primary key) ක්ෂේත්‍ර දෙකක් හෝ ඊට වැඩි ගණනකින් සමන්විත වේ.",en:"C – A composite primary key is made up of two or more fields."}],
+ q2:{si:"ඉහත ප්‍රකාශ අතුරින් නිවැරදි වන්නේ කවරක් ද?",en:"Which of the above statements is/are correct?"},
+ o:[{si:"A හා B පමණි",en:"A and B only"},{si:"A හා C පමණි",en:"A and C only"},{si:"B හා C පමණි",en:"B and C only"},{si:"A, B සහ C සියල්ලම",en:"All of A, B and C"}],a:2,
+ e:{si:"ප්‍රාථමික යතුර කවදාවත් හිස් විය නොහැකියි, එබැවින් A වැරදියි. ආගන්තුක යතුරු තීරුවේ අගයන් නැවත නැවත එන්න පුළුවන් (උදා: LOAN හි M101), එබැවින් B නිවැරදියි. C නිවැරදියි.",
+   en:"A primary key can never be empty, so A is wrong. Values in a foreign key column can repeat (e.g. M101 in LOAN), so B is correct. C is correct."}},
+{s:"D",type:"multi",ans:[0,1,2],
+ q:{si:"අත්පුරුදු දත්ත සමුදායකට වඩා ඉලෙක්ට්‍රොනික දත්ත සමුදායක ඇති වාසි සියල්ල තෝරන්න.",en:"Select ALL the advantages of an electronic database over a manual database."},
+ o:[{si:"දත්ත ඉක්මනින් සොයා ගත හැකි ය",en:"Data can be searched quickly"},{si:"ආචයනයට අවශ්‍ය භෞතික ඉඩ අඩු ය",en:"It needs less physical storage space"},{si:"එකම දත්ත පරිශීලකයින් කිහිපදෙනෙකුට එකවර බෙදා ගත හැකි ය",en:"The same data can be shared by many users at once"},{si:"විදුලිය අවශ්‍ය නොවේ",en:"No electricity is needed"},{si:"දත්ත කිසිදා නැති නොවේ",en:"Data can never be lost"}],
+ e:{si:"ඉලෙක්ට්‍රොනික දත්ත සමුදායකට විදුලිය සහ උපාංග අවශ්‍යයි. උපස්ථ පිටපත් (backup) නොගත්තොත් දත්ත නැති විය හැකියි.",
+   en:"An electronic database needs electricity and devices, and data can be lost if no backup is kept."}}
+];
+
+/* ---------- State ---------- */
+let name="",i=0,score=0,streak=0,log=[],tick=null,left=TIME,locked=false,st=null;
+const app=document.getElementById("app"),pills=document.getElementById("pills"),dots=document.getElementById("dots");
+document.getElementById("brand").textContent=UI.brand;
+document.documentElement.lang=LANG;
+const needsCheck=t=>!(t==="mcq"||t==="tf");
+
+function hud(){
+  pills.innerHTML=name?`<span class="pill">${esc(name)}</span><span class="pill">${score} ${esc(UI.pts)}</span>${streak>=2?`<span class="pill hot">${esc(UI.streak(streak))}</span>`:""}`:"";
+  dots.innerHTML=Q.map((_,k)=>`<i class="${k<log.length?(log[k]===1?"ok":log[k]>0?"part":"bad"):k===i&&name?"cur":""}"></i>`).join("");
+}
+
+function start(){
+  name="";log=[];hud();dots.hidden=true;
+  const tk=Object.keys(UI.types);
+  app.innerHTML=`<h1>${esc(UI.title)}</h1><p class="sub">${esc(UI.sub)}</p>
+  <p>${esc(UI.intro)}</p>
+  <div class="facts">${UI.facts.map(f=>`<span class="fact">${esc(f)}</span>`).join("")}</div>
+  <p class="muted" style="font-weight:600">${esc(UI.typesL)}</p>
+  <div class="chips">${tk.map(k=>`<span class="chip" style="--h:var(--h-${k})">${esc(UI.types[k])}</span>`).join("")}</div>
+  <p class="muted">${esc(UI.rules)}</p>
+  <label for="nm">${esc(UI.nameL)}</label><input id="nm" autocomplete="off" placeholder="${esc(UI.nameP)}">
+  <button class="btn primary" id="go" disabled>${esc(UI.start)}</button>`;
+  const nm=document.getElementById("nm"),go=document.getElementById("go");
+  nm.oninput=()=>go.disabled=!nm.value.trim();
+  nm.onkeydown=e=>{if(e.key==="Enter"&&nm.value.trim())go.click()};
+  go.onclick=()=>{name=nm.value.trim();i=0;score=0;streak=0;log=[];dots.hidden=false;show()};
+}
+
+function tableHTML(t,ti,q){
+  const pick=q.type==="pick"&&q.tbl===ti, sub=T(t.s);
+  return `<div class="tbl${pick?" pickme":""}"><div class="tn"><b>${esc(t.n)}</b>${sub?` (${esc(sub)})`:""}${pick?`<span class="tapme">${esc(UI.tapHere)}</span>`:""}</div>
+  <table><thead><tr>${t.c.map((c,ci)=>`<th data-c="${ci}">${pick?`<button class="colbtn" data-c="${ci}">${esc(c)}</button>`:esc(c)}</th>`).join("")}</tr></thead>
+  <tbody>${t.r.map(r=>`<tr>${r.map((v,ci)=>`<td data-c="${ci}">${esc(v)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+}
+function scenHTML(sc,q){
+  return `<details class="scen" open><summary><span class="range">${esc(T(sc.range))}</span><span class="stitle">${esc(T(sc.title))}</span></summary>
+  <div class="sbody"><p class="intro">${esc(T(sc.intro))}</p>
+  ${sc.t.length?`<div class="tables">${sc.t.map((t,ti)=>tableHTML(t,ti,q)).join("")}</div>`:""}
+  ${sc.note?`<p class="note"><b>${LANG==="si"?"සටහන:":"Note:"}</b> ${esc(T(sc.note))}</p>`:""}</div></details>`;
+}
+function shuffled(n){let a=[...Array(n).keys()];do{for(let k=n-1;k>0;k--){const j=Math.floor(Math.random()*(k+1));[a[k],a[j]]=[a[j],a[k]]}}while(n>2&&a.every((v,k)=>v===k));return a}
+
+function areaHTML(q){
+  switch(q.type){
+  case "mcq": return `<div class="answers">${q.o.map((o,k)=>`<button class="ans c${k}" data-k="${k}"><span class="sh">${SH[k]}</span><span class="no">(${k+1})</span><span>${esc(T(o))}</span></button>`).join("")}</div>`;
+  case "tf": return `<div class="tfgrid"><button class="ans c3" data-k="1">${esc(UI.tru)}</button><button class="ans c0" data-k="0">${esc(UI.fls)}</button></div>`;
+  case "pick": return `<p class="picked">${esc(UI.picked)} <b id="pk">${esc(UI.none)}</b></p>`;
+  case "multi": return `<div class="opts">${q.o.map((o,k)=>`<button class="opt" data-k="${k}"><span class="box"></span><span>${esc(T(o))}</span></button>`).join("")}</div>`;
+  case "rows": {const t=SC[q.s].t[q.tbl];
+    return `<div class="rlist"><p class="rhead">${esc(t.n)} (${t.c.map(esc).join(", ")})</p>${q.rows.map((r,k)=>`<div class="rrow" data-r="${k}"><code>(${r.v.map(esc).join(", ")})</code>
+    <div class="seg"><button data-r="${k}" data-v="1">${esc(UI.acc)}</button><button data-r="${k}" data-v="0">${esc(UI.rej)}</button></div><p class="why" hidden></p></div>`).join("")}</div>`;}
+  case "fill": return `<div class="flist">${q.items.map((it,k)=>`<div class="frow" data-r="${k}"><p>${esc(T(it.t))}</p><div class="chips">${q.opts.map((o,v)=>`<button data-r="${k}" data-v="${v}">${esc(T(o))}</button>`).join("")}</div></div>`).join("")}</div>`;
+  case "match": st.order=shuffled(q.R.length);
+    return `<div class="mgrid"><div class="mcol"><h3>${esc(UI.mL)}</h3>${q.L.map((l,k)=>`<button class="mi" data-l="${k}"><span class="tag">${LET[k]}</span><span>${esc(T(l))}</span></button>`).join("")}</div>
+    <div class="mcol"><h3>${esc(UI.mR)}</h3>${st.order.map(r=>`<button class="mi" data-r="${r}"><span class="tag"></span><span>${esc(T(q.R[r]))}<small hidden></small></span></button>`).join("")}</div></div>`;
+  }
+}
+
+function ready(q){
+  if(q.type==="pick"||q.type==="multi")return st.sel.size>0;
+  if(q.type==="rows")return Object.keys(st.map).length===q.rows.length;
+  if(q.type==="fill")return Object.keys(st.map).length===q.items.length;
+  if(q.type==="match")return Object.keys(st.map).length===q.L.length;
+  return false;
+}
+function paint(q){
+  if(q.type==="pick"){
+    app.querySelectorAll(".pickme [data-c]").forEach(el=>{if(el.tagName!=="BUTTON")el.classList.toggle("on",st.sel.has(+el.dataset.c))});
+    const t=SC[q.s].t[q.tbl];document.getElementById("pk").textContent=st.sel.size?[...st.sel].sort().map(c=>t.c[c]).join(" + "):UI.none;
+  }
+  if(q.type==="multi")app.querySelectorAll(".opt").forEach(b=>b.classList.toggle("on",st.sel.has(+b.dataset.k)));
+  if(q.type==="rows"||q.type==="fill")app.querySelectorAll("button[data-v]").forEach(b=>b.classList.toggle("on",st.map[b.dataset.r]===+b.dataset.v));
+  if(q.type==="match"){
+    app.querySelectorAll(".mi[data-l]").forEach(b=>{const l=+b.dataset.l;b.className="mi"+(st.cur===l?" cur":"")+(st.map[l]!=null?" p"+l:"")});
+    app.querySelectorAll(".mi[data-r]").forEach(b=>{const r=+b.dataset.r;const owner=Object.keys(st.map).find(k=>st.map[k]===r);
+      b.className="mi"+(owner!=null?" p"+owner:"");b.querySelector(".tag").textContent=owner!=null?LET[owner]:""});
+  }
+  const c=document.getElementById("check");if(c)c.disabled=!ready(q);
+}
+
+function show(){
+  const q=Q[i],sc=SC[q.s];locked=false;left=TIME;st={sel:new Set(),map:{},cur:null};
+  hud();
+  const C=2*Math.PI*21;
+  app.innerHTML=`<div class="qhead"><span class="chip" style="--h:var(--h-${q.type})">${esc(UI.types[q.type])}</span><span class="qno">${esc(UI.qOf(i+1,Q.length))}</span>
+   <div class="ring" id="ring"><svg width="52" height="52" viewBox="0 0 52 52"><circle class="tr" cx="26" cy="26" r="21" fill="none" stroke-width="6"/><circle class="fg" id="arc" cx="26" cy="26" r="21" fill="none" stroke-width="6" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="0"/></svg><b id="sec">${fmt(TIME)}</b></div></div>
+  ${scenHTML(sc,q)}
+  <h2 class="qtext"><span class="num">${i+1}.</span> ${esc(T(q.q))}</h2>
+  ${q.st?`<div class="stmts">${q.st.map(s=>{const x=T(s);return `<p><b>${esc(x.slice(0,1))}</b>${esc(x.slice(1))}</p>`}).join("")}</div><h2>${esc(T(q.q2))}</h2>`:""}
+  <p class="how" style="--h:var(--h-${q.type})">${esc(UI.how[q.type])}</p>
+  <div id="area">${areaHTML(q)}</div>
+  ${needsCheck(q.type)?`<button class="btn primary" id="check" disabled>${esc(UI.check)}</button>`:""}
+  <div id="fb"></div>`;
+  bind(q);
+  window.scrollTo({top:0});
+  clearInterval(tick);
+  tick=setInterval(()=>{left-=.2;
+    const arc=document.getElementById("arc"),sec=document.getElementById("sec"),ring=document.getElementById("ring");
+    if(arc)arc.style.strokeDashoffset=C*(1-Math.max(0,left)/TIME);
+    if(sec)sec.textContent=fmt(Math.max(0,Math.ceil(left)));
+    if(ring)ring.classList.toggle("low",left<=15);
+    if(left<=0){needsCheck(q.type)?check(q,true):answer(q,-1)}},200);
+}
+const fmt=s=>`${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`;
+
+function bind(q){
+  if(!needsCheck(q.type)){app.querySelectorAll("#area .ans").forEach(b=>b.onclick=()=>answer(q,+b.dataset.k));return}
+  document.getElementById("check").onclick=()=>check(q,false);
+  if(q.type==="pick")app.querySelectorAll(".pickme [data-c]").forEach(el=>{if(el.tagName==="TH")return;el.onclick=e=>{e.stopPropagation();if(locked)return;const c=+el.dataset.c;st.sel.has(c)?st.sel.delete(c):st.sel.add(c);paint(q)}});
+  const area=document.getElementById("area");
+  area.onclick=e=>{const b=e.target.closest("button");if(!b||locked)return;
+    if(q.type==="multi"){const k=+b.dataset.k;st.sel.has(k)?st.sel.delete(k):st.sel.add(k)}
+    else if(q.type==="rows"||q.type==="fill"){st.map[b.dataset.r]=+b.dataset.v}
+    else if(q.type==="match"){
+      if(b.dataset.l!=null){const l=+b.dataset.l;if(st.map[l]!=null)delete st.map[l];st.cur=l}
+      else if(b.dataset.r!=null&&st.cur!=null){const r=+b.dataset.r;for(const k in st.map)if(st.map[k]===r)delete st.map[k];st.map[st.cur]=r;
+        const nx=q.L.findIndex((_,k)=>st.map[k]==null);st.cur=nx>=0?nx:null}
+    }
+    paint(q)};
+  if(q.type==="match"){st.cur=0}
+  paint(q);
+}
+
+function setScore(frac){
+  let pts=0,bonus=false;
+  if(frac>0)pts=Math.round((500+500*Math.max(0,left)/TIME)*frac);
+  if(frac===1){streak++;if(streak>=3){pts+=100;bonus=true}}else streak=0;
+  score+=pts;log.push(frac);hud();return {pts,bonus};
+}
+function feedback(q,frac,r,timeout,extra){
+  const cls=frac===1?"ok":frac>0?"part":"no";
+  const head=frac===1?UI.ok:frac>0?UI.part:(timeout?UI.time:UI.bad);
+  const fb=document.getElementById("fb");
+  fb.innerHTML=`<div class="feedback ${cls} pop"><div class="fh"><b>${esc(head)}</b><span>+${r.pts}${r.bonus?` (${esc(UI.bonus)})`:""}</span></div>${extra?`<p><strong>${esc(extra)}</strong></p>`:""}<p>${esc(T(q.e))}</p></div>
+  <button class="btn primary" id="nx" style="margin-top:14px">${esc(i+1<Q.length?UI.next:UI.results)}</button>`;
+  if(frac===1)confetti();
+  fb.scrollIntoView({behavior:RM?"auto":"smooth",block:"nearest"});
+  const nx=document.getElementById("nx");nx.focus({preventScroll:true});
+  nx.onclick=()=>{i++;i<Q.length?show():finish()};
+}
+function answer(q,k){
+  if(locked)return;locked=true;clearInterval(tick);
+  const correct=q.type==="tf"?(q.a?1:0):q.a, ok=k===correct;
+  app.querySelectorAll("#area .ans").forEach(b=>{const n=+b.dataset.k;b.disabled=true;
+    if(n===correct)b.classList.add("right");else if(n===k)b.classList.add("wrong");else b.classList.add("dim")});
+  const r=setScore(ok?1:0);
+  feedback(q,ok?1:0,r,k<0,!ok&&q.type==="mcq"?UI.ans(q.a+1):null);
+}
+function setFrac(sel,correct){const C=new Set(correct);let hit=0,wrong=0;sel.forEach(x=>C.has(x)?hit++:wrong++);return (hit===C.size&&wrong===0)?1:Math.max(0,(hit-wrong)/C.size)}
+function check(q,timeout){
+  if(locked)return;locked=true;clearInterval(tick);
+  const c=document.getElementById("check");if(c)c.remove();
+  let frac=0;
+  if(q.type==="pick"){frac=setFrac(st.sel,q.cols);const C=new Set(q.cols);
+    app.querySelectorAll(".pickme th").forEach(th=>{const k=+th.dataset.c;th.classList.remove("on");
+      if(C.has(k))th.classList.add(st.sel.has(k)?"good":"miss");else if(st.sel.has(k))th.classList.add("bad")});
+    app.querySelectorAll(".pickme td.on").forEach(td=>td.classList.remove("on"));}
+  if(q.type==="multi"){frac=setFrac(st.sel,q.ans);const C=new Set(q.ans);
+    app.querySelectorAll(".opt").forEach(b=>{const k=+b.dataset.k;b.disabled=true;
+      if(C.has(k))b.classList.add(st.sel.has(k)?"good":"miss");else if(st.sel.has(k))b.classList.add("bad")});}
+  if(q.type==="rows"){let n=0;
+    q.rows.forEach((r,k)=>{const row=app.querySelector(`.rrow[data-r="${k}"]`),ok=st.map[k]===r.a;if(ok)n++;
+      row.classList.add(ok?"good":"bad");const w=row.querySelector(".why");w.hidden=false;
+      w.innerHTML=`<b>${esc(r.a?UI.acc:UI.rej)}.</b> ${esc(T(r.why))}`;row.querySelectorAll("button").forEach(b=>b.disabled=true)});
+    frac=n/q.rows.length;}
+  if(q.type==="fill"){let n=0;
+    q.items.forEach((it,k)=>{const row=app.querySelector(`.frow[data-r="${k}"]`),ok=st.map[k]===it.a;if(ok)n++;
+      row.classList.add(ok?"good":"bad");
+      row.querySelectorAll("button").forEach(b=>{const v=+b.dataset.v;b.disabled=true;b.classList.remove("on");
+        if(v===it.a)b.classList.add(ok?"good":"miss");else if(v===st.map[k])b.classList.add("bad")})});
+    frac=n/q.items.length;}
+  if(q.type==="match"){let n=0;st.cur=null;paint(q);
+    q.L.forEach((_,l)=>{const b=app.querySelector(`.mi[data-l="${l}"]`),ok=st.map[l]===l;if(ok)n++;b.classList.add(ok?"good":"bad");b.disabled=true;
+      if(!ok){const sm=document.createElement("small");sm.textContent=`${UI.right} ${T(q.R[l])}`;b.querySelector("span:last-child").appendChild(sm)}});
+    app.querySelectorAll(".mi[data-r]").forEach(b=>b.disabled=true);
+    frac=n/q.L.length;}
+  feedback(q,frac,setScore(frac),timeout&&frac===0,null);
+}
+
+function finish(){
+  const full=log.filter(f=>f===1).length,pct=log.reduce((a,b)=>a+b,0)/Q.length;
+  const stars=pct>=.9?3:pct>=.6?2:pct>=.3?1:0;
+  const msg=UI.msgs[stars];
+  const res=`${UI.resT}\n${UI.resName}: ${name}\n${UI.resScore}: ${score}\n${UI.resRight}: ${full} / ${Q.length}`;
+  i=Q.length;hud();
+  app.innerHTML=`<p class="muted" style="font-family:var(--display);font-weight:600">${esc(UI.final)}</p>
+  <div class="stars">${[0,1,2].map(k=>`<span class="star${k<stars?" on":""}"></span>`).join("")}</div>
+  <div class="big">${score}</div>
+  <h2>${esc(UI.fully(full,Q.length))}. ${esc(msg)}</h2>
+  <div class="result" id="res">${esc(res)}</div>
+  <div class="row"><button class="btn primary" id="cp">${esc(UI.copy)}</button><button class="btn ghost" id="again">${esc(UI.again)}</button></div>
+  <p id="cpmsg" class="muted" aria-live="polite"></p>
+  <p class="muted" style="font-weight:600">${esc(UI.review)}</p>
+  <ol class="review">${Q.map((q,k)=>{const f=log[k];const c=f===1?"ok":f>0?"part":"bad";const s=f===1?"✓":f>0?"~":"✗";const t=T(q.q);
+    return `<li><span class="s ${c}">${s}</span>${esc(t.length>90?t.slice(0,90)+"…":t)}</li>`}).join("")}</ol>`;
+  window.scrollTo({top:0});
+  if(stars>=2)confetti();
+  document.getElementById("again").onclick=start;
+  document.getElementById("cp").onclick=()=>{
+    const m=document.getElementById("cpmsg");
+    const sel=()=>{const r=document.createRange();r.selectNodeContents(document.getElementById("res"));const s=getSelection();s.removeAllRanges();s.addRange(r);m.textContent=UI.selected};
+    try{navigator.clipboard.writeText(res).then(()=>m.textContent=UI.copied,sel)}catch(e){sel()}
+  };
+}
+
+function confetti(){
+  if(RM)return;
+  const cv=document.getElementById("fx"),x=cv.getContext("2d"),d=devicePixelRatio||1;
+  cv.width=innerWidth*d;cv.height=innerHeight*d;x.scale(d,d);
+  const cs=getComputedStyle(document.documentElement),cols=["--t1","--t2","--t3","--t4","--brand"].map(v=>cs.getPropertyValue(v).trim());
+  const P=Array.from({length:110},()=>({x:innerWidth/2+(Math.random()-.5)*120,y:innerHeight*.35,vx:(Math.random()-.5)*14,vy:-Math.random()*13-4,r:Math.random()*6.28,s:5+Math.random()*6,c:cols[Math.floor(Math.random()*cols.length)]}));
+  const t0=performance.now();
+  (function f(t){const k=(t-t0)/1400;x.clearRect(0,0,innerWidth,innerHeight);
+    if(k>=1)return;
+    P.forEach(p=>{p.vy+=.45;p.x+=p.vx;p.y+=p.vy;p.r+=.2;x.save();x.globalAlpha=1-k;x.translate(p.x,p.y);x.rotate(p.r);x.fillStyle=p.c;x.fillRect(-p.s/2,-p.s/4,p.s,p.s/2);x.restore()});
+    requestAnimationFrame(f)})(t0);
+}
+start();
+</script>
+</body>
+</html>
