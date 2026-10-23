@@ -1,0 +1,703 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Tag Quest</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Lexend:wght@400;500;600&family=Noto+Sans+Sinhala:wght@400;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: notebook-grid ground; one rounded game card per screen; HUD with progress dots on top; scenario sheet (collapsible) above each question */
+:root{
+  --bg:#EDF2FB; --dot:#D3DDF0; --card:#FFFFFF; --soft:#F5F8FE; --ink:#18213D; --muted:#56628A; --line:#D5DDEE;
+  --brand:#FF7A2F; --brand-deep:#D85A12; --accent-text:#C24E0C; --brand-ink:#2A1200;
+  --ok:#17914B; --bad:#D93B42; --mid:#C98300;
+  --t1:#D9423A; --t2:#2A6AD4; --t3:#7B4FD6; --t4:#23874A; --t-ink:#FFFFFF; --t-deep:rgba(0,0,0,.28);
+  --h-mcq:#2A6AD4; --h-pick:#FF7A2F; --h-tf:#0E9F9A; --h-match:#7B4FD6; --h-rows:#D9423A; --h-fill:#23874A; --h-multi:#C98300; --h-bits:#0E7FB8; --h-order:#B8458A; --h-input:#5B6B1E;
+  --display:"Fredoka","Noto Sans Sinhala",system-ui,sans-serif;
+  --body:"Lexend","Noto Sans Sinhala","Iskoola Pota",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#11162A; --dot:#1E2644; --card:#1B2240; --soft:#151B34; --ink:#EEF1FF; --muted:#A0AACC; --line:#2D3660;
+  --brand:#FF8A45; --brand-deep:#C2520F; --accent-text:#FF9A5C; --brand-ink:#2A1200; --ok:#3FCF7F; --bad:#FF6B70; --mid:#F2B33D; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#11162A; --dot:#1E2644; --card:#1B2240; --soft:#151B34; --ink:#EEF1FF; --muted:#A0AACC; --line:#2D3660;
+  --brand:#FF8A45; --brand-deep:#C2520F; --accent-text:#FF9A5C; --brand-ink:#2A1200; --ok:#3FCF7F; --bad:#FF6B70; --mid:#F2B33D; color-scheme:dark}
+*{box-sizing:border-box}
+body{background-color:var(--bg);background-image:radial-gradient(var(--dot) 1.2px,transparent 1.6px);background-size:22px 22px;color:var(--ink);
+  font-family:var(--body);font-size:17px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:18px 48px}
+.wrap{max-width:880px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+p{margin:0}
+.hud{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:600;font-size:15px;color:var(--muted)}
+.pills{display:flex;gap:8px;flex-wrap:wrap}
+.pill{font-family:var(--display);font-weight:600;font-size:15px;background:var(--card);border:1px solid var(--line);border-radius:99px;padding:4px 12px;font-variant-numeric:tabular-nums}
+.pill.hot{background:var(--brand);color:var(--brand-ink);border-color:var(--brand)}
+.dots{display:flex;gap:6px;flex-wrap:wrap}
+.dots i{width:12px;height:12px;border-radius:50%;background:var(--line)}
+.dots i.cur{background:var(--card);box-shadow:0 0 0 3px var(--brand)}
+.dots i.ok{background:var(--ok)} .dots i.part{background:var(--mid)} .dots i.bad{background:var(--bad)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:22px;display:flex;flex-direction:column;gap:16px;box-shadow:0 6px 0 var(--line)}
+@media (max-width:520px){.card{padding:16px;border-radius:18px}}
+h1{font-family:var(--display);font-size:clamp(34px,7vw,52px);line-height:1.1;margin:0;font-weight:700;text-wrap:balance}
+h2{font-family:var(--display);font-size:clamp(19px,3.4vw,23px);line-height:1.5;margin:0;font-weight:600}
+.sub{color:var(--muted);font-weight:500}
+.muted{color:var(--muted)}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:7px;font-family:var(--display);font-weight:600;font-size:14px;padding:4px 12px 4px 10px;border-radius:99px;
+  background:color-mix(in srgb,var(--h) 16%,var(--card));color:var(--ink);border:1px solid color-mix(in srgb,var(--h) 40%,var(--card))}
+.chip::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--h)}
+.facts{display:flex;gap:10px;flex-wrap:wrap}
+.fact{font-family:var(--display);font-weight:600;background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:8px 14px}
+label{font-family:var(--display);font-weight:600}
+input{width:100%;font:inherit;padding:14px 16px;border-radius:14px;border:2px solid var(--line);background:var(--soft);color:var(--ink)}
+input:focus{border-color:var(--brand);outline:none}
+button{font:inherit;cursor:pointer;border:0;color:inherit;background:none}
+button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
+.btn{font-family:var(--display);font-weight:600;font-size:19px;border-radius:16px;padding:13px 26px;transition:transform .08s,box-shadow .08s}
+.btn:active:not(:disabled){transform:translateY(3px)}
+.primary{background:var(--brand);color:var(--brand-ink);box-shadow:0 5px 0 var(--brand-deep);align-self:flex-start}
+.primary:active:not(:disabled){box-shadow:0 2px 0 var(--brand-deep)}
+.primary:disabled{opacity:.45;cursor:not-allowed}
+.ghost{border:2px solid var(--line);background:var(--card)}
+.qhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.qno{font-family:var(--display);font-weight:600;color:var(--muted);font-size:15px}
+.ring{margin-left:auto;position:relative;width:52px;height:52px;flex:none}
+.ring svg{transform:rotate(-90deg)}
+.ring b{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--display);font-size:15px;font-variant-numeric:tabular-nums}
+.ring .tr{stroke:var(--line)} .ring .fg{stroke:var(--h-tf);transition:stroke-dashoffset .2s linear}
+.ring.low .fg{stroke:var(--bad)}
+details.scen{background:var(--soft);border:1px solid var(--line);border-radius:16px;min-width:0}
+details.scen summary{cursor:pointer;padding:10px 14px;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;list-style:none}
+details.scen summary::-webkit-details-marker{display:none}
+details.scen summary::after{content:"▾";margin-left:auto;color:var(--muted)}
+details.scen:not([open]) summary::after{content:"▸"}
+.range{font-family:var(--display);font-weight:600;color:var(--accent-text)}
+.stitle{font-weight:600}
+.sbody{padding:0 14px 14px;display:flex;flex-direction:column;gap:12px}
+.intro{font-size:15.5px}
+.note{font-size:14.5px;color:var(--muted)} .note b{color:var(--ink)}
+.tables{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--card);min-width:0}
+.tbl .tn{font-size:13.5px;padding:6px 10px;color:var(--muted);border-bottom:1px solid var(--line);display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.tbl .tn b{font-family:var(--mono);color:var(--ink)}
+.tapme{margin-left:auto;font-family:var(--display);font-weight:600;font-size:12.5px;background:var(--brand);color:var(--brand-ink);border-radius:99px;padding:1px 10px}
+.tbl.pickme{border:2px solid var(--brand);box-shadow:0 0 0 4px color-mix(in srgb,var(--brand) 18%,transparent)}
+table{border-collapse:collapse;width:100%;font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums}
+th,td{padding:6px 10px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--line)}
+tbody tr:last-child td{border-bottom:0}
+th{color:var(--accent-text);font-weight:700}
+.colbtn{font-family:var(--mono);font-weight:700;font-size:13px;padding:5px 9px;border-radius:8px;border:2px dashed var(--brand);color:inherit}
+.pickme td{cursor:pointer}
+.pickme th.on .colbtn{background:var(--brand);color:var(--brand-ink);border-style:solid}
+.pickme td.on{background:color-mix(in srgb,var(--brand) 18%,transparent)}
+.pickme th.good .colbtn{background:var(--ok);border:2px solid var(--ok);color:#fff}
+.pickme th.bad .colbtn{background:var(--bad);border:2px solid var(--bad);color:#fff}
+.pickme th.miss .colbtn{border:2px dashed var(--ok);color:var(--ok);background:transparent}
+.qtext .num{color:var(--accent-text)}
+.stmts{display:flex;flex-direction:column;gap:6px;background:var(--soft);border-radius:12px;padding:12px 14px}
+.stmts b{font-family:var(--display);color:var(--accent-text)}
+.how{font-size:14.5px;color:var(--muted);display:flex;gap:8px;align-items:flex-start}
+.how::before{content:"";flex:none;width:10px;height:10px;margin-top:7px;border-radius:3px;background:var(--h)}
+.answers{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:600px){.answers{grid-template-columns:1fr}}
+.ans{display:flex;gap:10px;align-items:center;text-align:left;padding:14px 16px;color:var(--t-ink);font-weight:600;min-height:62px;line-height:1.4;border-radius:16px;box-shadow:0 5px 0 var(--t-deep);transition:transform .08s,box-shadow .08s,opacity .2s}
+.ans:active:not(:disabled){transform:translateY(3px);box-shadow:0 2px 0 var(--t-deep)}
+.ans .sh{font-size:18px;flex:none;width:20px;text-align:center}
+.ans .no{font-family:var(--display);flex:none;opacity:.9}
+.ans span{min-width:0}
+.ans.c0{background:var(--t1)}.ans.c1{background:var(--t2)}.ans.c2{background:var(--t3)}.ans.c3{background:var(--t4)}
+.ans:disabled{cursor:default}
+.ans.dim{opacity:.3}
+.ans.right{outline:4px solid var(--ok);outline-offset:3px;opacity:1}
+.ans.wrong{outline:4px solid var(--bad);outline-offset:3px}
+.tfgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tfgrid .ans{justify-content:center;font-family:var(--display);font-size:22px;min-height:84px}
+.opts{display:flex;flex-direction:column;gap:10px}
+.opt{display:flex;gap:12px;align-items:center;text-align:left;padding:12px 14px;border:2px solid var(--line);border-radius:14px;background:var(--card);font-weight:500}
+.opt .box{flex:none;width:24px;height:24px;border-radius:7px;border:2px solid var(--muted);display:grid;place-items:center;font-size:15px;line-height:1}
+.opt.on{border-color:var(--h-multi);background:color-mix(in srgb,var(--h-multi) 12%,var(--card))}
+.opt.on .box{background:var(--h-multi);border-color:var(--h-multi);color:#fff}
+.opt.on .box::after{content:"✓"}
+.opt.good{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 14%,var(--card))}
+.opt.bad{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 14%,var(--card))}
+.opt.miss{border-style:dashed;border-color:var(--ok)}
+.rlist{display:flex;flex-direction:column;gap:10px}
+.rhead{font-family:var(--mono);font-size:13px;color:var(--muted)}
+.rrow{border:2px solid var(--line);border-radius:14px;padding:10px 12px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.rrow code{font-family:var(--mono);font-size:14px;font-weight:700}
+.seg{display:flex;gap:8px}
+.seg button{font-family:var(--display);font-weight:600;padding:7px 14px;border-radius:12px;border:2px solid var(--line);background:var(--card)}
+.seg button.on[data-v="1"]{background:var(--ok);border-color:var(--ok);color:#fff}
+.seg button.on[data-v="0"]{background:var(--bad);border-color:var(--bad);color:#fff}
+.rrow.good{border-color:var(--ok)} .rrow.bad{border-color:var(--bad)}
+.why{flex-basis:100%;font-size:14px;color:var(--muted)}
+.why b{color:var(--ink)}
+.flist{display:flex;flex-direction:column;gap:12px}
+.frow{border:2px solid var(--line);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.frow p{font-weight:600}
+.frow .chips button{font-family:var(--display);font-weight:600;font-size:15px;padding:6px 13px;border-radius:12px;border:2px solid var(--line);background:var(--card)}
+.frow .chips button.on{background:var(--h-fill);border-color:var(--h-fill);color:#fff}
+.frow .chips button.good{background:var(--ok);border-color:var(--ok);color:#fff}
+.frow .chips button.bad{background:var(--bad);border-color:var(--bad);color:#fff}
+.frow .chips button.miss{border:2px dashed var(--ok);color:var(--ok)}
+.frow.good{border-color:var(--ok)} .frow.bad{border-color:var(--bad)}
+.mgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:600px){.mgrid{grid-template-columns:1fr}}
+.mcol{display:flex;flex-direction:column;gap:10px;min-width:0}
+.mcol h3{margin:0;font-family:var(--display);font-size:14px;font-weight:600;color:var(--muted)}
+.mi{display:flex;gap:10px;align-items:center;text-align:left;padding:11px 12px;border:2px solid var(--line);border-radius:14px;background:var(--card);font-weight:500;min-height:52px}
+.mi .tag{flex:none;width:28px;height:28px;border-radius:9px;display:grid;place-items:center;font-family:var(--display);font-weight:700;background:var(--soft);border:2px solid var(--line)}
+.mi.cur{border-color:var(--brand);box-shadow:0 0 0 4px color-mix(in srgb,var(--brand) 22%,transparent)}
+.mi.p0{border-color:var(--t1)}.mi.p0 .tag{background:var(--t1);border-color:var(--t1);color:#fff}
+.mi.p1{border-color:var(--t2)}.mi.p1 .tag{background:var(--t2);border-color:var(--t2);color:#fff}
+.mi.p2{border-color:var(--t3)}.mi.p2 .tag{background:var(--t3);border-color:var(--t3);color:#fff}
+.mi.p3{border-color:var(--t4)}.mi.p3 .tag{background:var(--t4);border-color:var(--t4);color:#fff}
+.mi.good{outline:3px solid var(--ok);outline-offset:2px} .mi.bad{outline:3px solid var(--bad);outline-offset:2px}
+.mi small{display:block;color:var(--ok);font-size:13px}
+.picked{font-size:15px}
+.picked b{font-family:var(--mono)}
+.feedback{border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;border:2px solid var(--line)}
+.feedback .fh{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.feedback .fh b{font-family:var(--display);font-size:24px}
+.feedback .fh span{font-family:var(--display);font-weight:600;font-size:18px}
+.feedback.ok{background:color-mix(in srgb,var(--ok) 13%,var(--card));border-color:var(--ok)} .feedback.ok b{color:var(--ok)}
+.feedback.part{background:color-mix(in srgb,var(--mid) 13%,var(--card));border-color:var(--mid)} .feedback.part b{color:var(--mid)}
+.feedback.no{background:color-mix(in srgb,var(--bad) 11%,var(--card));border-color:var(--bad)} .feedback.no b{color:var(--bad)}
+.pop{animation:pop .35s ease-out}
+@keyframes pop{0%{transform:scale(.9);opacity:.3}100%{transform:scale(1);opacity:1}}
+.stars{display:flex;gap:8px}
+.star{width:44px;height:44px;background:var(--line);clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)}
+.star.on{background:var(--mid)}
+.big{font-family:var(--display);font-size:clamp(56px,13vw,88px);font-weight:700;line-height:1;font-variant-numeric:tabular-nums;color:var(--brand)}
+.result{font-family:var(--mono);font-size:13.5px;background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:12px;white-space:pre-wrap;user-select:all}
+.row{display:flex;gap:12px;flex-wrap:wrap}
+ol.review{margin:0;padding-left:28px;display:flex;flex-direction:column;gap:6px;font-size:14.5px}
+ol.review .s{font-family:var(--display);font-weight:700;margin-right:6px}
+ol.review .ok{color:var(--ok)} ol.review .part{color:var(--mid)} ol.review .bad{color:var(--bad)}
+.foot{font-size:13px;color:var(--muted)}
+#fx{position:fixed;inset:0;pointer-events:none;z-index:10}
+@media (prefers-reduced-motion:reduce){.pop{animation:none}.btn,.ans,.ring .fg{transition:none}}
+.banner{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;background:var(--soft);border:1px solid var(--line);border-radius:16px;padding:10px 14px}
+.banner .intro{flex-basis:100%;font-size:14.5px;color:var(--muted)}
+.bits{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:6px}
+.bit{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 0 10px;border-radius:14px;border:2px solid var(--line);background:var(--card);box-shadow:0 4px 0 var(--line);transition:transform .08s}
+.bit:active:not(:disabled){transform:translateY(3px)}
+.bit small{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.bit b{font-family:var(--mono);font-size:clamp(22px,6vw,32px);line-height:1.1}
+.bit.on{background:var(--h-bits);border-color:var(--h-bits);color:#fff;box-shadow:0 4px 0 color-mix(in srgb,var(--h-bits) 60%,#000)}
+.bit.on small{color:#fff;opacity:.85}
+.bit.good{outline:3px solid var(--ok);outline-offset:2px} .bit.bad{outline:3px solid var(--bad);outline-offset:2px}
+.ends{font-size:14px;color:var(--muted);font-family:var(--display);font-weight:600}
+ol.slots{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;counter-reset:s}
+ol.slots li{display:flex;gap:10px;align-items:center;counter-increment:s}
+ol.slots li::before{content:counter(s);flex:none;width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-family:var(--display);font-weight:700;background:var(--h-order);color:#fff}
+.slot{flex:1;min-width:0;text-align:left;padding:10px 12px;border-radius:12px;border:2px solid var(--h-order);background:color-mix(in srgb,var(--h-order) 10%,var(--card));font-weight:600;min-height:46px}
+.slot.empty{border-style:dashed;border-color:var(--line);background:transparent;color:var(--muted);font-weight:400}
+.slot.good{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 13%,var(--card))} .slot.bad{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 11%,var(--card))}
+.pool{display:flex;gap:8px;flex-wrap:wrap}
+.pool button{font-weight:600;padding:9px 14px;border-radius:12px;border:2px solid var(--line);background:var(--card);box-shadow:0 3px 0 var(--line)}
+.inrow{display:flex;align-items:flex-end;gap:6px}
+.ia{font-family:var(--mono);font-size:clamp(22px,6vw,30px);font-weight:700;letter-spacing:.08em;padding:10px 14px;border-radius:14px;max-width:420px}
+.ia.good{border-color:var(--ok)} .ia.bad{border-color:var(--bad)}
+.basesub{font-family:var(--mono);font-weight:700;color:var(--muted);font-size:18px;padding-bottom:6px}
+.keypad{display:grid;grid-template-columns:repeat(auto-fill,minmax(54px,1fr));gap:8px;max-width:440px}
+.keypad button{font-family:var(--mono);font-weight:700;font-size:22px;padding:10px 0;border-radius:12px;border:2px solid var(--line);background:var(--card);box-shadow:0 4px 0 var(--line);transition:transform .08s}
+.keypad button:active:not(:disabled){transform:translateY(3px)}
+.keypad .del{background:var(--soft);font-family:var(--display);font-size:18px}
+sub{font-size:.68em;line-height:0}
+.figs{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px}
+.fig{display:flex;flex-direction:column;gap:6px;min-width:0}
+.figcap{font-size:13px;color:var(--muted);font-weight:600}
+.figpage{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff;min-height:60px}
+.cn{font-size:1.5em;line-height:1;color:var(--accent-text);vertical-align:-.08em}
+.codeblk{margin:0;background:#141B2D;color:#E6EAF5;border-radius:12px;padding:12px 14px;font-family:var(--mono);font-size:13px;line-height:1.8;overflow-x:auto;white-space:pre}
+.codeblk .tg{color:#FF7DA0}.codeblk .at{color:#5FD4C8}.codeblk .sv{color:#FFC46B}.codeblk .lb{color:#FFC46B;font-weight:700;font-size:1.1em}
+</style>
+
+</head>
+<body>
+<canvas id="fx"></canvas>
+<div class="wrap">
+  <div class="hud"><span class="brand" id="brand"></span><div class="pills" id="pills"></div></div>
+  <div class="dots" id="dots" hidden></div>
+  <div class="card" id="app"></div>
+  <p class="foot">Nilupul Weerasinghe · Online O/L ICT · 076 135 5516</p>
+</div>
+
+<script>
+const LANG="en";
+const LESSON={
+ui:{
+ si:{brand:"ICT · පාඩම 05 · සරල වෙබ් අඩවි නිර්මාණය",title:"උසුලන ක්‍රීඩාව",sub:"11 ශ්‍රේණිය · පාඩම 05 · බහු මාධ්‍ය තාක්ෂණය යොදා ගනිමින් සරල වෙබ් අඩවි නිර්මාණය",
+  intro:"O/L ප්‍රශ්න පත්‍රයේ ආකෘතියෙන් ප්‍රශ්න 25ක්. II පත්‍රයේ 'හිස් උසුලනය පුරවන්න' ප්‍රශ්නය ද ඇතුළත්.",
+  resT:"ICT පාඩම 05 ක්‍රීඩාව",
+  msgs:["කමක් නැහැ. ටියුට් එකේ 3 වන පිටුවේ උසුලන පෙට්ටිය නැවත බලා ආයෙ උත්සාහ කරන්න.","නරක නැහැ. 4 වන පිටුවේ 'හිස් උසුලනය පුරවන්න' ක්‍රමය තව පුහුණු වෙලා ආයෙ උත්සාහ කරන්න.","හොඳයි! වැරදුණ ප්‍රශ්න පහළින් බලන්න.","සුපිරි! විභාගයේ පාඩම 05 ප්‍රශ්නවලට ඔබ ලෑස්තියි."]},
+ en:{brand:"ICT · Lesson 05 · Simple websites",title:"Tag Quest",sub:"Grade 11 · Lesson 05 · Designing simple websites using multimedia",
+  intro:"25 questions in the O/L paper style, including the Paper II 'fill in the missing tags' question.",
+  resT:"ICT Lesson 05 quiz",
+  msgs:["No worries. Go over the tag table on page 3 of the tute and try again.","Not bad. Practise the 'fill in the missing tags' method on page 4 and try again.","Good work! Check the questions you missed below.","Superb! You're ready for the Lesson 05 questions in the exam."]}
+},
+SC:{
+ A:{range:{si:"ප්‍රශ්න 1 – 5",en:"Questions 1 – 5"},title:{si:"වෙබ් අඩවියක් සැලසුම් කිරීම",en:"Planning a website"}},
+ B:{range:{si:"ප්‍රශ්න 6 – 10",en:"Questions 6 – 10"},title:{si:"HTML මූලික කරුණු",en:"HTML basics"}},
+ C:{range:{si:"ප්‍රශ්න 11 – 13",en:"Questions 11 – 13"},title:{si:"ලැයිස්තු සහ සබැඳි",en:"Lists and links"}},
+ T:{range:{si:"ප්‍රශ්න 14 – 15",en:"Questions 14 – 15"},title:{si:"වගු",en:"Tables"},
+  intro:{si:"ප්‍රශ්න අංක 14 සහ 15 සඳහා පහත HTML කේතය සහ එහි ප්‍රතිදානය සලකන්න.",en:"Consider the following HTML code and its output to answer questions 14 and 15."},
+  out:`<table border="1"><tr><th>Company Name</th><th>Contact Number</th></tr><tr><td rowspan="2">ABC Ltd</td><td>011-2222222</td></tr><tr><td>011-9999999</td></tr><tr><td>XYZ &amp; Sons</td><td>011-7777777</td></tr></table>`,
+  code:`<table border="1">
+<tr><th>Company Name</th><th>Contact Number</th></tr>
+<tr><td rowspan="2">ABC Ltd</td><td>011-2222222</td></tr>
+<tr><td>011-9999999</td></tr>
+<tr><td>XYZ & Sons</td><td>011-7777777</td></tr>
+</table>`},
+ D:{range:{si:"ප්‍රශ්න 16 – 20",en:"Questions 16 – 20"},title:{si:"හිස් උසුලනය පුරවන්න (II පත්‍රය)",en:"Fill in the missing tags (Paper II)"},
+  intro:{si:"ප්‍රශ්න අංක 16 සිට 20 තෙක් පිළිතුරු සැපයීමට, රූපය 1 හි පෙන්වන වෙබ් පිටුවේ HTML ප්‍රභවය සලකන්න. එහි සමහර උසුලන සහ ගුණාංග නොමැතිව, ❶ සිට ❽ දක්වා ලේබල් කර රූපය 2 හි දක්වා ඇත.",
+         en:"Use the following to answer questions 16 to 20. Figure 2 shows the HTML source of the web page in Figure 1, with some tags and attributes missing and labelled ❶ to ❽."},
+  out:`<center><h2>Kandy Esala Perahera</h2></center><p>The <b>Esala Perahera</b> is held in Kandy every year.</p><div style="width:200px;height:84px;border:1px dashed #888;display:flex;align-items:center;justify-content:center;font:12px sans-serif;color:#555">[Perahera photo]</div><ul type="square"><li>Fire dancers</li><li>Elephants</li></ul><a href="#">Read more</a>`,
+  code:`<html>
+<head><❶>Perahera</❶></head>
+<body>
+<❷><h2>Kandy Esala Perahera</h2></❷>
+<p>The <❸>Esala Perahera</❸> is held in Kandy every year.</p>
+<img ❹="perahera.jpg" ❺="Perahera photo" width="200">
+<ul ❻="square">
+  <❼>Fire dancers</❼>
+  <❼>Elephants</❼>
+</ul>
+<a ❽="http://www.sridaladamaligawa.lk">Read more</a>
+</body>
+</html>`},
+ E:{range:{si:"ප්‍රශ්න 21 – 25",en:"Questions 21 – 25"},title:{si:"වෙබ් අඩවි ප්‍රකාශනය සහ මෙවලම්",en:"Publishing and web tools"}}
+},
+Q:[
+/* A — planning */
+{s:"A",type:"mcq",
+ q:{si:"වෙබ් අඩවියක ග්‍රාහක කණ්ඩායම (target audience) විශ්ලේෂණය කිරීමේදී සලකා බලන සාධකයක් නොවන්නේ කුමක් ද?",en:"Which of the following is NOT a factor considered when analysing the target audience of a website?"},
+ o:[{si:"භාෂාව හා සංස්කෘතිය",en:"Language and culture"},{si:"වයස",en:"Age"},{si:"අධ්‍යාපන මට්ටම",en:"Education level"},{si:"වෙබ් සත්කාරකයේ සේවාදායකයේ වේගය",en:"The speed of the web host's server"}],a:3,
+ e:{si:"ග්‍රාහක කණ්ඩායම ගැන සලකන්නේ භාෂාව, වයස, අධ්‍යාපන මට්ටම, ස්ත්‍රී/පුරුෂ බව සහ රුචිකත්ව (මතක ඉඟිය: භා-ව-අ-ස්-රු). සේවාදායකයේ වේගය පරිශීලකයා පිළිබඳ සාධකයක් නොවේ.",
+   en:"For the audience you consider language, age, education level, gender and interests. Server speed is not about the users."}},
+{s:"A",type:"multi",ans:[0,1],
+ q:{si:"වෙබ් අඩවියේ මුල් පිටුවෙන් සමස්ත අන්තර්ගතයේ සාරාංශයක් ලබා දීමට භාවිත කළ හැකි ක්‍රම සියල්ල තෝරන්න. (2025 O/L)",en:"Select ALL the methods a home page can use to give a summary of the whole website's content. (2025 O/L)"},
+ o:[{si:"ප්‍රධාන මෙනු සහ අනුමෙනු",en:"Main menus and sub-menus"},{si:"අධිසන්ධාන (hyperlinks)",en:"Hyperlinks"},{si:"විශාල පසුබිම් රූපයක්",en:"A large background image"},{si:"චලනය වන පාඨයක් (marquee)",en:"Moving text (marquee)"}],
+ e:{si:"මුල් පිටුවෙන් සෑම කොටසකටම යා හැකි වන සේ ප්‍රධාන මෙනු සහ අනුමෙනු හෝ අධිසන්ධාන භාවිත කරයි.",en:"The home page links to every section using main menus and sub-menus, or hyperlinks."}},
+{s:"A",type:"order",ends:{si:["පළමු","අවසාන"],en:["first","last"]},
+ q:{si:"වෙබ් අඩවියක් නිර්මාණය කර ප්‍රකාශයට පත් කිරීමේ පියවර නිවැරදි පිළිවෙළට තබන්න.",en:"Put the steps for creating and publishing a website in the correct order."},
+ items:[{si:"සැලසුම් කිරීම",en:"Planning"},{si:"නිර්මාණය",en:"Designing"},{si:"වසම් නාමය ලබා ගැනීම",en:"Getting a domain name"},{si:"සත්කාරකයක් ලබා ගැනීම",en:"Getting a web host"},{si:"උඩුගත කිරීම",en:"Uploading"},{si:"පරීක්ෂා කිරීම",en:"Testing"}],
+ e:{si:"සැලසුම → නිර්මාණය → වසම් නාමය → සත්කාරය → උඩුගත කිරීම → පරීක්ෂාව. ඉන්පසු යාවත්කාලීන කිරීම සහ කළමනාකරණය.",en:"Planning → designing → domain name → hosting → uploading → testing. After that comes updating and maintenance."}},
+{s:"A",type:"match",
+ q:{si:"එක් එක් වෙබ් අඩවි භාවිතය සුදුසු නිදසුන සමග ගළපන්න.",en:"Match each use of a website with a suitable example."},
+ L:[{si:"විද්‍යුත් වාණිජ්‍යය (e-Commerce)",en:"e-Commerce"},{si:"විනෝදාස්වාදය",en:"Entertainment"},{si:"පුවත්",en:"News"},{si:"සෙවුම් යන්ත්‍රය",en:"Search engine"}],
+ R:["www.amazon.com","www.youtube.com","www.itnnews.lk","www.google.com"],
+ e:{si:"amazon = මිලදී ගැනීම, youtube = වීඩියෝ, itnnews = පුවත්, google = සෙවීම.",en:"amazon = shopping, youtube = videos, itnnews = news, google = searching."}},
+{s:"A",type:"tf",a:false,
+ q:{si:"අන්තර්ජාලයේ ඇති ඕනෑම රූපයක් හෝ වීඩියෝවක් අවසරයකින් තොරව අපේ පාසල් වෙබ් අඩවියට එක් කළ හැකි ය.",en:"Any image or video on the internet can be added to our school website without permission."},
+ e:{si:"අන් අයගේ රූප/වීඩියෝ ප්‍රකාශන හිමිකමින් (copyright) ආරක්ෂිතයි. අවසර ගත යුතුයි. අවසරයකින් තොරව භාවිත කළ හැක්කේ පුවත්, අධ්‍යාපනික කටයුතු වැනි සාධාරණ භාවිතය (fair use) යටතේ පමණයි.",
+   en:"Other people's images and videos are protected by copyright, so you must get permission. Only fair use, such as news or education, allows use without it."}},
+/* B — HTML basics */
+{s:"B",type:"mcq",
+ q:{si:"වෙබ් පිටුවක නිවැරදි HTML උසුලන අනුක්‍රමය (tag sequence) කුමක් ද? (2021 O/L)",en:"Which is the correct HTML tag sequence for a web page? (2021 O/L)"},
+ o:["HTML, Body, Title, Head","HTML, Head, Title, Body","HTML, Title, Head, Body","Head, Title, HTML, Body"],a:1,
+ e:{si:"html → head → title → body. title ඇත්තේ head තුළයි.",en:"html → head → title → body. The title sits inside the head."}},
+{s:"B",type:"mcq",
+ q:{si:"HTML පිළිබඳ පහත ප්‍රකාශ සලකන්න.",en:"Consider the following statements about HTML."},
+ st:[{si:"A – HTML උසුලන ලොකු/කුඩා අකුරු සංවේදී නොවේ (<TITLE> = <title>).",en:"A – HTML tags are not case sensitive (<TITLE> = <title>)."},{si:"B – ගුණාංග (attributes) ලියන්නේ අවසාන උසුලනයේ ය.",en:"B – Attributes are written in the closing tag."},{si:"C – <br> යනු අවසාන උසුලනයක් නැති හිස් උසුලනයකි.",en:"C – <br> is an empty tag with no closing tag."}],
+ q2:{si:"ඉහත ප්‍රකාශ අතුරින් සත්‍ය වන්නේ කවරක් ද?",en:"Which of the above statements is/are true?"},
+ o:[{si:"A හා B පමණි",en:"A and B only"},{si:"A හා C පමණි",en:"A and C only"},{si:"B හා C පමණි",en:"B and C only"},{si:"A, B සහ C සියල්ලම",en:"All of A, B and C"}],a:1,
+ e:{si:"ගුණාංග ලියන්නේ ආරම්භක උසුලනයේ පමණයි. එබැවින් B අසත්‍යයි.",en:"Attributes are written only in the opening tag, so B is false."}},
+{s:"B",type:"fill",opts:[{si:"මූලාංගය (element)",en:"Element"},{si:"ගුණාංගය (attribute)",en:"Attribute"},{si:"අගය (value)",en:"Value"},{si:"අන්තර්ගතය (content)",en:"Content"}],
+ q:{si:"<p align=\"center\">Sri Lanka</p> යන කේතයේ එක් එක් කොටස හඳුනාගන්න.",en:"Identify each part of the code <p align=\"center\">Sri Lanka</p>."},
+ items:[{t:"p",a:0},{t:"align",a:1},{t:"center",a:2},{t:"Sri Lanka",a:3}],
+ e:{si:"p = මූලාංගය, align = ගුණාංගය, center = අගය (ද්විත්ව උද්ධෘත පාඨ \" \" තුළ), Sri Lanka = පිටුවේ පෙනෙන අන්තර්ගතය.",en:"p is the element, align the attribute and center the value (inside double quotes \" \"). Sri Lanka is the content shown on the page."}},
+{s:"B",type:"multi",ans:[0,1],
+ q:{si:"පහත උසුලන අතුරින් හිස් උසුලන (අවසාන උසුලනයක් නැති) සියල්ල තෝරන්න.",en:"Select ALL the empty tags (tags with no closing tag)."},
+ o:["<br>","<img>","<p>","<h1>","<table>"],
+ e:{si:"<br> සහ <img> හිස් උසුලනයි. අනෙක් ඒවාට </p>, </h1>, </table> ලෙස අවසාන උසුලන ඇත.",en:"<br> and <img> are empty tags. The others have closing tags: </p>, </h1> and </table>."}},
+{s:"B",type:"mcq",
+ q:{si:"මන්දගාමී අන්තර්ජාල සම්බන්ධතාවයක් නිසා රූපයක් දර්ශනය නොවන විට, ඒ වෙනුවට පාඨයක් පෙන්වීමට භාවිත කරන img ගුණාංගය කුමක් ද? (2017 O/L)",en:"When an image can't be displayed because of a slow internet connection, which img attribute provides the text shown instead? (2017 O/L)"},
+ o:["src","href","alt","border"],a:2,
+ e:{si:"alt = රූපය නොපෙනුනොත් ඒ වෙනුවට පෙන්වන පාඨය. src = රූප ගොනුවේ නම.",en:"alt is the text shown when the image can't be displayed. src gives the image file name."}},
+/* C — lists & links */
+{s:"C",type:"mcq",
+ q:{si:"අංකිත ලැයිස්තුවක් (numbered list) සාදා ගැනීමට භාවිත කළ යුතු HTML උසුලන යුගලය කුමක් ද? (2020 O/L)",en:"Which pair of HTML tags should be used to create a numbered list? (2020 O/L)"},
+ o:["ul, li","dl, dd","nl, li","ol, li"],a:3,
+ e:{si:"ol = ordered (අංක සහිත), li = ලැයිස්තු අයිතමය. nl නමින් උසුලනයක් නැත.",en:"ol means ordered (numbered) and li is a list item. There is no nl tag."}},
+{s:"C",type:"mcq",
+ q:{si:"http://www.nie.lk වෙත 'NIE' නමින් අධිසන්ධානයක් සාදන නිවැරදි HTML කේතය කුමක් ද?",en:"Which HTML code correctly creates a link named 'NIE' to http://www.nie.lk?"},
+ o:["<a>http://www.nie.lk</a>","<a url=\"http://www.nie.lk\">NIE</a>","<a href=\"http://www.nie.lk\">NIE</a>","<a src=\"http://www.nie.lk\">NIE</a>"],a:2,
+ e:{si:"ලිපිනය href ගුණාංගය තුළ ලියයි. <a> සහ </a> අතර ඇති පාඨය (NIE) පිටුවේ සබැඳිය ලෙස පෙනේ.",en:"The address goes in the href attribute. The text between <a> and </a> (NIE) is what shows as the link."}},
+{s:"C",type:"match",
+ q:{si:"එක් එක් උසුලනය එහි අර්ථය සමග ගළපන්න.",en:"Match each tag with its meaning."},
+ L:["<ul>","<ol>","<dt>","<dd>"],
+ R:[{si:"අංකිත නොවන ලැයිස්තුව (• බුලට්)",en:"Unordered list (• bullets)"},{si:"අංකිත ලැයිස්තුව (1. 2. 3.)",en:"Ordered list (1. 2. 3.)"},{si:"විස්තර ලැයිස්තුවේ විස්තර කරන වචනය (term)",en:"The term in a description list"},{si:"විස්තර ලැයිස්තුවේ විස්තරය",en:"The description in a description list"}],
+ e:{si:"ul = unordered, ol = ordered, dt = term, dd = describe.",en:"ul = unordered, ol = ordered, dt = term, dd = describe."}},
+/* T — tables */
+{s:"T",type:"mcq",
+ q:{si:"මෙම වගුවේ පේළි දෙකක් පුරා සිරස්ව දිවෙන කෝෂය කුමක් ද?",en:"Which cell in this table stretches down two rows?"},
+ o:["Company Name","ABC Ltd","011-9999999","XYZ & Sons"],a:1,
+ e:{si:"rowspan=\"2\" ඇත්තේ ABC Ltd කෝෂයේයි. එය පේළි 2ක් පුරා සිරස්ව (↕) දිවේ.",en:"rowspan=\"2\" is on the ABC Ltd cell, so it stretches down (↕) two rows."}},
+{s:"T",type:"mcq",
+ q:{si:"කේතයේ තුන්වන <tr> පේළියේ <td> එකක් පමණක් ඇත්තේ ඇයි?",en:"Why does the third <tr> row in the code have only one <td>?"},
+ o:[{si:"කේතයේ දෝෂයක් ඇති නිසා",en:"Because there is an error in the code"},{si:"එම පේළිය ශීර්ෂ පේළියක් නිසා",en:"Because it is a header row"},{si:"ABC Ltd කෝෂය එම පේළියේ ඉඩ දැනටමත් අල්ලාගෙන ඇති නිසා",en:"Because the ABC Ltd cell already takes up that space in the row"},{si:"colspan භාවිත කර ඇති නිසා",en:"Because colspan is used"}],a:2,
+ e:{si:"rowspan සහිත කෝෂයට පහළ පේළියේ td එකක් අඩුවෙන් ලියයි, මොකද එම ඉඩ දැනටමත් අල්ලාගෙන ඇති නිසා (ටියුට් එකේ TRAP).",en:"The row below a rowspan cell has one td fewer, because that space is already taken (the TRAP in the tute)."}},
+/* D — paper II fill the blanks */
+{s:"D",type:"fill",opts:["title","h1","center","p","b","i","src","href"],
+ q:{si:"❶ සිට ❹ තෙක් ලේබල සඳහා නිවැරදි උසුලන හෝ ගුණාංග තෝරන්න.",en:"Choose the correct tag or attribute for labels ❶ to ❹."},
+ items:[{t:"❶",a:0},{t:"❷",a:2},{t:"❸",a:4},{t:"❹",a:6}],
+ e:{si:"❶ title: head තුළ ඇති, මාතෘකා තීරුවේ පෙනෙන පාඨය. ❷ center: ශීර්ෂය මැදට. ❸ b: 'Esala Perahera' තද අකුරින්. ❹ src: රූප ගොනුවේ නම.",en:"❶ title: inside head, shown in the title bar. ❷ center: centres the heading. ❸ b: 'Esala Perahera' is bold. ❹ src: the image file name."}},
+{s:"D",type:"fill",opts:["alt","src","type","li","ol","href","url","name"],
+ q:{si:"❺ සිට ❽ තෙක් ලේබල සඳහා නිවැරදි උසුලන හෝ ගුණාංග තෝරන්න.",en:"Choose the correct tag or attribute for labels ❺ to ❽."},
+ items:[{t:"❺",a:0},{t:"❻",a:2},{t:"❼",a:3},{t:"❽",a:5}],
+ e:{si:"❺ alt: රූපය නොපෙනුනොත් පෙනෙන පාඨය. ❻ type: කොටු (square) බුලට්. ❼ li: ලැයිස්තු අයිතම. ❽ href: සබැඳියේ ලිපිනය.",en:"❺ alt: the text shown if the image is missing. ❻ type: square bullets. ❼ li: the list items. ❽ href: the link's address."}},
+{s:"D",type:"mcq",
+ q:{si:"❶ ලේබලය සහිත උසුලනය තුළ ඇති 'Perahera' යන පාඨය පෙනෙන්නේ කොතැන ද?",en:"Where is the text 'Perahera', inside the tag at label ❶, displayed?"},
+ o:[{si:"පිටුවේ ප්‍රධාන ශීර්ෂය ලෙස",en:"As the main heading of the page"},{si:"අතිරික්සුවේ මාතෘකා තීරුවේ",en:"In the browser's title bar"},{si:"රූපයට පහළින්",en:"Below the image"},{si:"කිසිම තැනක නොපෙනේ",en:"It is not displayed anywhere"}],a:1,
+ e:{si:"title පාඨය පිටුව තුළ නොව අතිරික්සුවේ මාතෘකා තීරුවේ පෙනේ. ඒ නිසා එය රූපය 1 හි නැත.",en:"The title text appears in the browser's title bar, not on the page. That's why it isn't in Figure 1."}},
+{s:"D",type:"tf",a:true,
+ q:{si:"perahera.jpg ගොනුව සොයාගත නොහැකි නම්, ඒ වෙනුවට 'Perahera photo' යන පාඨය පෙන්වයි.",en:"If the file perahera.jpg can't be found, the text 'Perahera photo' is shown instead."},
+ e:{si:"එය ❺ (alt) ගුණාංගයේ අගයයි. රූපය නොපෙනුනොත් පෙනෙන්නේ එයයි.",en:"That is the value of the ❺ (alt) attribute, which is what shows when the image can't be displayed."}},
+{s:"D",type:"mcq",
+ q:{si:"මෙම කේතයේ ul වෙනුවට ol භාවිත කළ හොත් 'Fire dancers' සහ 'Elephants' පෙනෙන්නේ කෙසේ ද?",en:"If ul is replaced with ol in this code, how will 'Fire dancers' and 'Elephants' be displayed?"},
+ o:[{si:"කොටු බුලට් සහිතව",en:"With square bullets"},{si:"1. සහ 2. ලෙස අංක සහිතව",en:"Numbered as 1. and 2."},{si:"ඇතුළට තල්ලු වූ විස්තර ලෙස",en:"As indented descriptions"},{si:"එකම පේළියේ",en:"On the same line"}],a:1,
+ e:{si:"ol = ordered list, එබැවින් අංක සහිතව පෙනේ.",en:"ol is an ordered list, so the items are numbered."}},
+/* E — publishing & tools */
+{s:"E",type:"mcq",
+ q:{si:"ගතික (dynamic) වෙබ් පිටුවක් යනු කුමක් ද? (2025 O/L)",en:"What is a dynamic web page? (2025 O/L)"},
+ o:[{si:"අන්තර්ගතය නිරන්තරයෙන් වෙනස් වන, සේවාදායකයේ දත්ත සමුදායකින් හෝ ක්‍රමලේඛයකින් ජනනය කරන පිටුවක්",en:"A page whose content keeps changing, generated by a database or program on the server"},{si:"අන්තර්ගතය දිගු කලක් වෙනස් නොවන පිටුවක්",en:"A page whose content stays the same for a long time"},{si:"Notepad හි HTML පමණක් භාවිතයෙන් සාදන පිටුවක්",en:"A page made with only HTML in Notepad"},{si:"රූප නොමැති පිටුවක්",en:"A page with no images"}],a:0,
+ e:{si:"ගතික පිටුව = අන්තර්ගතය නිරන්තරයෙන් වෙනස් වේ + සේවාදායකයේ දත්ත සමුදායකින්/ක්‍රමලේඛයකින් ජනනය වේ (උදා: විභාග ප්‍රතිඵල අඩවිය).",en:"A dynamic page's content keeps changing, and it is generated by a database or program on the server (for example, an exam results site)."}},
+{s:"E",type:"match",
+ q:{si:"වෙබ් කණ්ඩායමේ එක් එක් භූමිකාව එහි කාර්යය සමග ගළපන්න.",en:"Match each role in a web team with its job."},
+ L:[{si:"කතෘ (Author)",en:"Author"},{si:"සංස්කාරක (Editor)",en:"Editor"},{si:"ප්‍රකාශක (Publisher)",en:"Publisher"},{si:"පරිපාලක (Administrator)",en:"Administrator"}],
+ R:[{si:"අකුරු මුහුණත් සහ සැලසුම් සකස් කරයි",en:"Plans the fonts and design"},{si:"කේත ලියා, දෝෂ පරීක්ෂා කර නිවැරදි කරයි",en:"Writes the code, and checks and fixes errors"},{si:"වෙබ් අඩවිය ප්‍රකාශයට පත් කරයි",en:"Publishes the website"},{si:"වෙබ් සේවාදායකය සහ දත්ත සමුදාය නඩත්තු කරයි",en:"Maintains the web server and database"}],
+ e:{si:"කතෘ සැලසුම් කරයි · සංස්කාරක කේත ලියයි · ප්‍රකාශක පළ කරයි · පරිපාලක නඩත්තු කරයි. පරිශීලකයා (User) අඩවිය භාවිත කරයි.",en:"Author designs · Editor codes · Publisher publishes · Administrator maintains. Users use the site."}},
+{s:"E",type:"multi",ans:[0,1,3,4,5],
+ q:{si:"වෙබ් අඩවියක් ප්‍රකාශයට පත් කිරීමට අවශ්‍ය දේ සියල්ල තෝරන්න.",en:"Select ALL the things needed to publish a website."},
+ o:[{si:"වෙබ් නිර්මාණ මෘදුකාංග (Software)",en:"Web design software"},{si:"වෙබ් සත්කාරකය (Host)",en:"A web host"},{si:"මුද්‍රණ යන්ත්‍රයක්",en:"A printer"},{si:"වසම් නාමය (Domain name)",en:"A domain name"},{si:"ගොනු හුවමාරු ප්‍රොටොකෝලය (FTP)",en:"File Transfer Protocol (FTP)"},{si:"අන්තර්ජාල සම්බන්ධතාව (Internet)",en:"An internet connection"},{si:"ස්කෑනරයක්",en:"A scanner"}],
+ e:{si:"මතක ඉඟිය S-H-D-F-I: Software, Host, Domain name, FTP, Internet. \"Some Hosts Do Free Internet\".",en:"Memory hook S-H-D-F-I: Software, Host, Domain name, FTP, Internet. \"Some Hosts Do Free Internet\"."}},
+{s:"E",type:"mcq",
+ q:{si:"හවුල් වෙබ් සත්කාරකයක් (shared host) යනු කුමක් ද? (2025 O/L)",en:"What is a shared web host? (2025 O/L)"},
+ o:[{si:"විශාල ආයතනයක් සඳහා පමණක් වෙන් කළ සේවාදායකයක්",en:"A server set aside for one large organisation only"},{si:"නොමිලේ සත්කාරකත්වය දී, දැන්වීම් පෙන්වන සේවාවක්",en:"A free hosting service that shows adverts"},{si:"වසම් නාම ලියාපදිංචි කරන ආයතනයක්",en:"An organisation that registers domain names"},{si:"කුඩා ආයතන කිහිපයක වෙබ් අඩවි, කුලියකට එකම සේවාදායකයේ ඉඩ බෙදා ගන්නා සත්කාරකයක්",en:"A host where the websites of several small organisations share space on the same server for a rental fee"}],a:3,
+ e:{si:"හවුල් සත්කාරකය: කුඩා ආයතන, වෙනත් ආයතනයක සත්කාරකයේ ඉඩ කුලියට ගනී (මූලික + වාර්ෂික ගාස්තු). කැපවූ (dedicated) සත්කාරකය විශාල ආයතන සඳහා ය.",en:"A shared host rents space on one server to several small organisations (setup and yearly fees). A dedicated host is for large organisations."}},
+{s:"E",type:"rows",labels:[{si:"සුදුසුයි",en:"Good choice"},{si:"නුසුදුසුයි",en:"Poor choice"}],
+ q:{si:"රාජකීය විද්‍යාලය (Royal College) සඳහා යෝජිත වසම් නාම පහත ඇත. එක් එක් එක සුදුසු ද නුසුදුසු ද?",en:"These domain names have been suggested for Royal College. Is each one a good choice or a poor choice?"},
+ rows:[{t:"www.royalcollege.lk",a:1,why:{si:"කෙටියි, ආයතනයේ නම පෙනේ, .lk මගින් ශ්‍රී ලංකාව පෙන්වයි.",en:"Short, shows the school's name, and .lk shows it's in Sri Lanka."}},
+       {t:"www.my-royal-college2.com",a:0,why:{si:"ඉරි (-) සහ ඉලක්කම් නිසා පරිශීලකයින් වරදවා ටයිප් කළ හැකියි.",en:"Hyphens and numbers make it easy for users to type it wrongly."}},
+       {t:"www.rclgclmbsl.org",a:0,why:{si:"අර්ථයක් නැති නිසා මතක තබා ගැනීමට සහ ලිවීමට අපහසුයි.",en:"It has no clear meaning, so it's hard to remember and spell."}},
+       {t:"www.royal.edu.lk",a:1,why:{si:"කෙටියි, .edu මගින් අධ්‍යාපන ආයතනයක් බව පෙනේ.",en:"Short, and .edu shows it's an educational institution."}}],
+ e:{si:"හොඳ වසම් නාමයක්: ① ආයතනය පෙන්වයි ② සුදුසු ඉහළ මට්ටමේ වසම (.lk, .edu) ③ කෙටියි ④ ඉලක්කම්/ඉරි නැත.",en:"A good domain name ① shows the organisation, ② uses a suitable top-level domain (.lk, .edu), ③ is short and ④ avoids numbers and hyphens."}}
+]};
+
+const T=x=>(x&&typeof x==="object"&&!Array.isArray(x)&&("en" in x))?x[LANG]:x;
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+/* fx: escape + turn 1101_2 into 1101<sub>2</sub> */
+const fx=s=>esc(T(s)).replace(/([0-9A-Fa-f]+)_(2|8|10|16)(?![0-9])/g,"$1<sub>$2</sub>").replace(/([\u2776-\u277F])/g,'<span class="cn">$1</span>');
+function hl(raw){const re=/("[^"]*")|(<\/?[A-Za-z0-9!]*)|(\/?>)|([A-Za-z-]+)(?==)/g;let out="",last=0,m;
+  while((m=re.exec(raw))){out+=esc(raw.slice(last,m.index));
+    if(m[1])out+=`<span class="sv">${esc(m[1])}</span>`;else if(m[2])out+=`<span class="tg">${esc(m[2])}</span>`;else if(m[3])out+=`<span class="tg">${esc(m[3])}</span>`;else if(m[4])out+=`<span class="at">${esc(m[4])}</span>`;
+    last=re.lastIndex;if(m[0]==="")re.lastIndex++}
+  return (out+esc(raw.slice(last))).replace(/([\u2776-\u277F])/g,'<span class="lb">$1</span>')}
+const RM=matchMedia("(prefers-reduced-motion: reduce)").matches;
+const SH=["▲","◆","●","■"], LET=["A","B","C","D","E"];
+const TIME=90;
+
+const UIS={
+si:{qOf:(a,b)=>`ප්‍රශ්නය ${a} / ${b}`,pts:"ලකුණු",streak:n=>`දිගටම හරි ×${n}`,
+ typesL:"ඔබට හමු වන ප්‍රශ්න වර්ග",nameL:"ඔබේ නම",nameP:"උදා: Kavindu",start:"පටන් ගමු",
+ rules:"ඉක්මනින් හරි උත්තර දුන්නොත් ලකුණු වැඩියි. දිගටම 3ක් සම්පූර්ණයෙන් හරි ගියොත් එක් එක් ප්‍රශ්නයට බෝනස් +100.",
+ types:{mcq:"බහුවරණ",pick:"තීරුව තට්ටු කරන්න",tf:"සත්‍ය ද අසත්‍ය ද",match:"ගළපන්න",rows:"එකින් එක තීරණය කරන්න",fill:"එකින් එක තෝරන්න",multi:"අදාළ සියල්ල තෝරන්න",bits:"බිටු මාරු කරන්න",order:"පිළිවෙළට තබන්න",input:"උත්තරය ලියන්න"},
+ how:{mcq:"නිවැරදි පිළිතුර තට්ටු කරන්න.",pick:"ඉහත වර්ණ කළ වගුවේ තීරු නම් තට්ටු කරන්න. තීරු එකකට වඩා තේරිය හැකියි.",tf:"ප්‍රකාශය කියවා සත්‍ය හෝ අසත්‍ය තෝරන්න.",match:"වම් පැත්තේ එකක් තට්ටු කර, ඊට ගැළපෙන දකුණු පැත්තේ එක තට්ටු කරන්න. වෙනස් කිරීමට නැවත තට්ටු කරන්න.",rows:"එක් එක් පේළියට එක් බොත්තමක් තෝරන්න.",fill:"එක් එක් පේළියට නිවැරදි එක තෝරන්න.",multi:"අදාළ සියල්ල තෝරා 'පරීක්ෂා කරන්න' ඔබන්න.",
+  bits:"එක් එක් බිටුව තට්ටු කර 0 සහ 1 අතර මාරු කරන්න. එක් එක් බිටුවට ඉහළින් ඇත්තේ ස්ථානීය අගයයි.",order:"පහළ ඇති අයිතම නිවැරදි පිළිවෙළට එකින් එක තට්ටු කරන්න. ඉවත් කිරීමට ඉහළ ඇති අයිතමය නැවත තට්ටු කරන්න.",input:"බොත්තම් භාවිතයෙන් උත්තරය ලියා 'පරීක්ෂා කරන්න' ඔබන්න."},
+ tapHere:"තට්ටු කරන්න",picked:"තෝරාගත්:",none:"තවම කිසිවක් නැත",bitsNow:"ඔබේ සංඛ්‍යාව:",empty:"පහළින් අයිතමයක් තට්ටු කරන්න",ansL:"ඔබේ උත්තරය",
+ check:"පරීක්ෂා කරන්න",next:"ඊළඟ ප්‍රශ්නය",results:"ප්‍රතිඵලය බලන්න",
+ tru:"සත්‍ය",fls:"අසත්‍ය",acc:"භාර ගනී",rej:"ප්‍රතික්ෂේප",
+ ok:"නියමයි!",part:"හරි ගාණයි!",bad:"වැරදියි",time:"කාලය ඉවරයි!",ans:n=>`නිවැරදි උත්තරය (${n})`,bonus:"බෝනස් සමග",
+ mL:"1. මෙය තට්ටු කරන්න",mR:"2. ඊට ගැළපෙන එක",right:"නිවැරදි උත්තරය:",
+ final:"අවසාන ලකුණු",fully:(r,n)=>`ප්‍රශ්න ${n}න් ${r}ක් සම්පූර්ණයෙන් හරි`,
+ copy:"ප්‍රතිඵලය copy කරන්න",again:"නැවත කරන්න",copied:"Copy කළා! දැන් class chat එකට paste කරන්න.",selected:"Text එක select කළා. Copy කර chat එකට paste කරන්න.",
+ review:"ප්‍රශ්න අනුව",resName:"නම",resScore:"ලකුණු",resRight:"සම්පූර්ණයෙන් හරි",note:"සටහන:",nq:n=>`ප්‍රශ්න ${n}`,nt:n=>`ප්‍රශ්න වර්ග ${n}`,tm:"ප්‍රශ්නයකට විනාඩි 1½",fig1:"රූපය 1: වෙබ් පිටුව",fig2:"රූපය 2: HTML ප්‍රභවය"},
+en:{qOf:(a,b)=>`Question ${a} of ${b}`,pts:"points",streak:n=>`Streak ×${n}`,
+ typesL:"Question types you'll meet",nameL:"Your name",nameP:"e.g. Kavindu",start:"Let's start",
+ rules:"Answer correctly and quickly for more points. Get 3 fully correct in a row and every question after that earns a +100 bonus.",
+ types:{mcq:"Multiple choice",pick:"Tap the column",tf:"True or false",match:"Match up",rows:"Decide for each",fill:"Choose for each",multi:"Select all that apply",bits:"Flip the bits",order:"Put in order",input:"Type the answer"},
+ how:{mcq:"Tap the correct answer.",pick:"Tap the column names in the highlighted table above. You can pick more than one.",tf:"Read the statement and choose True or False.",match:"Tap an item on the left, then tap its match on the right. Tap again to change it.",rows:"Choose one button for each row.",fill:"Choose the right answer for each row.",multi:"Select every correct option, then press Check.",
+  bits:"Tap each bit to switch it between 0 and 1. The place value is shown above each bit.",order:"Tap the items below in the correct order. Tap a placed item to send it back.",input:"Use the keypad to type your answer, then press Check."},
+ tapHere:"Tap here",picked:"Selected:",none:"nothing yet",bitsNow:"Your number:",empty:"Tap an item below",ansL:"Your answer",
+ check:"Check",next:"Next question",results:"See my results",
+ tru:"True",fls:"False",acc:"Accept",rej:"Reject",
+ ok:"Nailed it!",part:"Almost!",bad:"Not quite",time:"Time's up!",ans:n=>`Correct answer: (${n})`,bonus:"with bonus",
+ mL:"1. Tap one of these",mR:"2. Then tap its match",right:"Correct answer:",
+ final:"Final score",fully:(r,n)=>`${r} of ${n} questions fully correct`,
+ copy:"Copy my result",again:"Play again",copied:"Copied! Now paste it in the class chat.",selected:"Text selected. Copy it and paste it in the class chat.",
+ review:"Question by question",resName:"Name",resScore:"Score",resRight:"Fully correct",note:"Note:",nq:n=>`${n} questions`,nt:n=>`${n} question types`,tm:"1½ minutes each",fig1:"Figure 1: Web page",fig2:"Figure 2: HTML source"}
+};
+const UI=Object.assign({},UIS[LANG],LESSON.ui[LANG]);
+const SC=LESSON.SC, Q=LESSON.Q;
+
+let name="",i=0,score=0,streak=0,log=[],tick=null,left=TIME,locked=false,st=null;
+const app=document.getElementById("app"),pills=document.getElementById("pills"),dots=document.getElementById("dots");
+document.getElementById("brand").textContent=UI.brand;
+document.documentElement.lang=LANG;
+const needsCheck=t=>!(t==="mcq"||t==="tf");
+const fmt=s=>`${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`;
+const norm=(v,q)=>{let n=String(v).toUpperCase().replace(/[^0-9A-F]/g,"");if(q.strip0!==false)n=n.replace(/^0+(?=.)/,"");return n};
+const grp4=s=>s.replace(/(.{4})(?=.)/g,"$1 ");
+
+function hud(){
+  pills.innerHTML=name?`<span class="pill">${esc(name)}</span><span class="pill">${score} ${esc(UI.pts)}</span>${streak>=2?`<span class="pill hot">${esc(UI.streak(streak))}</span>`:""}`:"";
+  dots.innerHTML=Q.map((_,k)=>`<i class="${k<log.length?(log[k]===1?"ok":log[k]>0?"part":"bad"):k===i&&name?"cur":""}"></i>`).join("");
+}
+
+function start(){
+  name="";log=[];hud();dots.hidden=true;
+  const tk=[...new Set(Q.map(q=>q.type))];
+  app.innerHTML=`<h1>${esc(UI.title)}</h1><p class="sub">${esc(UI.sub)}</p>
+  <p>${esc(UI.intro)}</p>
+  <div class="facts">${[UI.nq(Q.length),UI.nt(tk.length),UI.tm].map(f=>`<span class="fact">${esc(f)}</span>`).join("")}</div>
+  <p class="muted" style="font-weight:600">${esc(UI.typesL)}</p>
+  <div class="chips">${tk.map(k=>`<span class="chip" style="--h:var(--h-${k})">${esc(UI.types[k])}</span>`).join("")}</div>
+  <p class="muted">${esc(UI.rules)}</p>
+  <label for="nm">${esc(UI.nameL)}</label><input id="nm" autocomplete="off" placeholder="${esc(UI.nameP)}">
+  <button class="btn primary" id="go" disabled>${esc(UI.start)}</button>`;
+  const nm=document.getElementById("nm"),go=document.getElementById("go");
+  nm.oninput=()=>go.disabled=!nm.value.trim();
+  nm.onkeydown=e=>{if(e.key==="Enter"&&nm.value.trim())go.click()};
+  go.onclick=()=>{name=nm.value.trim();i=0;score=0;streak=0;log=[];dots.hidden=false;show()};
+}
+
+function tableHTML(t,ti,q){
+  const pick=q.type==="pick"&&q.tbl===ti, sub=T(t.s);
+  return `<div class="tbl${pick?" pickme":""}"><div class="tn"><b>${esc(t.n)}</b>${sub?` (${esc(sub)})`:""}${pick?`<span class="tapme">${esc(UI.tapHere)}</span>`:""}</div>
+  <table><thead><tr>${t.c.map((c,ci)=>`<th data-c="${ci}">${pick?`<button class="colbtn" data-c="${ci}">${esc(c)}</button>`:esc(c)}</th>`).join("")}</tr></thead>
+  <tbody>${t.r.map(r=>`<tr>${r.map((v,ci)=>`<td data-c="${ci}">${esc(v)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+}
+function scenHTML(sc,q){
+  const hasBody=(sc.t&&sc.t.length)||sc.note||sc.code||sc.out;
+  if(!hasBody)return `<div class="banner"><span class="range">${fx(sc.range)}</span><span class="stitle">${fx(sc.title)}</span>${sc.intro?`<p class="intro">${fx(sc.intro)}</p>`:""}</div>`;
+  return `<details class="scen" open><summary><span class="range">${fx(sc.range)}</span><span class="stitle">${fx(sc.title)}</span></summary>
+  <div class="sbody">${sc.intro?`<p class="intro">${fx(sc.intro)}</p>`:""}
+  ${sc.t&&sc.t.length?`<div class="tables">${sc.t.map((t,ti)=>tableHTML(t,ti,q)).join("")}</div>`:""}
+  ${sc.out||sc.code?`<div class="figs">${sc.out?`<div class="fig"><p class="figcap">${esc(UI.fig1)}</p><div class="figpage" data-out="${q.s}"></div></div>`:""}${sc.code?`<div class="fig"><p class="figcap">${esc(UI.fig2)}</p><pre class="codeblk">${hl(sc.code)}</pre></div>`:""}</div>`:""}
+  ${sc.note?`<p class="note"><b>${esc(UI.note)}</b> ${fx(sc.note)}</p>`:""}</div></details>`;
+}
+function shuffled(n){let a=[...Array(n).keys()];do{for(let k=n-1;k>0;k--){const j=Math.floor(Math.random()*(k+1));[a[k],a[j]]=[a[j],a[k]]}}while(n>2&&a.every((v,k)=>v===k));return a}
+
+function areaHTML(q){
+  switch(q.type){
+  case "mcq": return `<div class="answers">${q.o.map((o,k)=>`<button class="ans c${k}" data-k="${k}"><span class="sh">${SH[k]}</span><span class="no">(${k+1})</span><span>${fx(o)}</span></button>`).join("")}</div>`;
+  case "tf": return `<div class="tfgrid"><button class="ans c3" data-k="1">${esc(UI.tru)}</button><button class="ans c0" data-k="0">${esc(UI.fls)}</button></div>`;
+  case "pick": return `<p class="picked">${esc(UI.picked)} <b id="pk">${esc(UI.none)}</b></p>`;
+  case "multi": return `<div class="opts">${q.o.map((o,k)=>`<button class="opt" data-k="${k}"><span class="box"></span><span>${fx(o)}</span></button>`).join("")}</div>`;
+  case "rows": {const lb=q.labels?q.labels.map(T):[UI.acc,UI.rej];
+    const head=q.tbl!=null?(()=>{const t=SC[q.s].t[q.tbl];return `<p class="rhead">${esc(t.n)} (${t.c.map(esc).join(", ")})</p>`})():"";
+    return `<div class="rlist">${head}${q.rows.map((r,k)=>`<div class="rrow" data-r="${k}"><code>${r.t?fx(r.t):`(${r.v.map(esc).join(", ")})`}</code>
+    <div class="seg"><button data-r="${k}" data-v="1">${esc(lb[0])}</button><button data-r="${k}" data-v="0">${esc(lb[1])}</button></div><p class="why" hidden></p></div>`).join("")}</div>`;}
+  case "fill": return `<div class="flist">${q.items.map((it,k)=>`<div class="frow" data-r="${k}"><p>${fx(it.t)}</p><div class="chips">${q.opts.map((o,v)=>`<button data-r="${k}" data-v="${v}">${fx(o)}</button>`).join("")}</div></div>`).join("")}</div>`;
+  case "match": st.order=shuffled(q.R.length);
+    return `<div class="mgrid"><div class="mcol"><h3>${esc(UI.mL)}</h3>${q.L.map((l,k)=>`<button class="mi" data-l="${k}"><span class="tag">${LET[k]}</span><span>${fx(l)}</span></button>`).join("")}</div>
+    <div class="mcol"><h3>${esc(UI.mR)}</h3>${st.order.map(r=>`<button class="mi" data-r="${r}"><span class="tag"></span><span>${fx(q.R[r])}<small hidden></small></span></button>`).join("")}</div></div>`;
+  case "bits": st.bits=Array(q.n).fill(0);
+    return `<div class="bits">${st.bits.map((_,k)=>`<button class="bit" data-b="${k}"><small>${2**(q.n-1-k)}</small><b>0</b></button>`).join("")}</div>
+    <p class="picked">${esc(UI.bitsNow)} <b id="bv"></b></p>`;
+  case "order": st.seq=[];st.pool=shuffled(q.items.length);
+    return `${q.ends?`<p class="ends">1 = ${esc(T(q.ends)[0])} · ${q.items.length} = ${esc(T(q.ends)[1])}</p>`:""}<ol class="slots" id="slots"></ol><div class="pool" id="pool"></div>`;
+  case "input":
+    return `<div class="inrow"><input id="ia" class="ia" inputmode="none" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="${esc(UI.ansL)}" placeholder="${esc(UI.ansL)}"><span class="basesub">${q.base?`<sub>${q.base}</sub>`:""}</span></div>
+    <div class="keypad">${[...q.keys].map(c=>`<button data-key="${c}">${c}</button>`).join("")}<button data-key="DEL" class="del" aria-label="Delete">⌫</button></div>`;
+  }
+}
+
+function ready(q){
+  if(q.type==="pick"||q.type==="multi")return st.sel.size>0;
+  if(q.type==="rows")return Object.keys(st.map).length===q.rows.length;
+  if(q.type==="fill")return Object.keys(st.map).length===q.items.length;
+  if(q.type==="match")return Object.keys(st.map).length===q.L.length;
+  if(q.type==="bits")return true;
+  if(q.type==="order")return st.seq.length===q.items.length;
+  if(q.type==="input")return norm(document.getElementById("ia").value,{strip0:false}).length>0;
+  return false;
+}
+function paint(q){
+  if(q.type==="pick"){
+    app.querySelectorAll(".pickme [data-c]").forEach(el=>{if(el.tagName!=="BUTTON")el.classList.toggle("on",st.sel.has(+el.dataset.c))});
+    const t=SC[q.s].t[q.tbl];document.getElementById("pk").textContent=st.sel.size?[...st.sel].sort().map(c=>t.c[c]).join(" + "):UI.none;
+  }
+  if(q.type==="multi")app.querySelectorAll(".opt").forEach(b=>b.classList.toggle("on",st.sel.has(+b.dataset.k)));
+  if(q.type==="rows"||q.type==="fill")app.querySelectorAll("button[data-v]").forEach(b=>b.classList.toggle("on",st.map[b.dataset.r]===+b.dataset.v));
+  if(q.type==="match"){
+    app.querySelectorAll(".mi[data-l]").forEach(b=>{const l=+b.dataset.l;b.className="mi"+(st.cur===l?" cur":"")+(st.map[l]!=null?" p"+(l%4):"")});
+    app.querySelectorAll(".mi[data-r]").forEach(b=>{const r=+b.dataset.r;const owner=Object.keys(st.map).find(k=>st.map[k]===r);
+      b.className="mi"+(owner!=null?" p"+(owner%4):"");b.querySelector(".tag").textContent=owner!=null?LET[owner]:""});
+  }
+  if(q.type==="bits"){
+    app.querySelectorAll(".bit").forEach(b=>{const k=+b.dataset.b;b.classList.toggle("on",!!st.bits[k]);b.querySelector("b").textContent=st.bits[k]});
+    document.getElementById("bv").textContent=grp4(st.bits.join(""));
+  }
+  if(q.type==="order"){
+    document.getElementById("slots").innerHTML=q.items.map((_,k)=>{const it=st.seq[k];
+      return `<li><button class="slot${it==null?" empty":""}" data-s="${k}" ${it==null?"disabled":""}>${it==null?esc(UI.empty):fx(q.items[it])}</button></li>`}).join("");
+    document.getElementById("pool").innerHTML=st.pool.filter(p=>!st.seq.includes(p)).map(p=>`<button data-p="${p}">${fx(q.items[p])}</button>`).join("");
+  }
+  const c=document.getElementById("check");if(c)c.disabled=!ready(q);
+}
+
+function show(){
+  const q=Q[i],sc=SC[q.s];locked=false;left=TIME;st={sel:new Set(),map:{},cur:null};
+  hud();
+  const C=2*Math.PI*21;
+  app.innerHTML=`<div class="qhead"><span class="chip" style="--h:var(--h-${q.type})">${esc(UI.types[q.type])}</span><span class="qno">${esc(UI.qOf(i+1,Q.length))}</span>
+   <div class="ring" id="ring"><svg width="52" height="52" viewBox="0 0 52 52"><circle class="tr" cx="26" cy="26" r="21" fill="none" stroke-width="6"/><circle class="fg" id="arc" cx="26" cy="26" r="21" fill="none" stroke-width="6" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="0"/></svg><b id="sec">${fmt(TIME)}</b></div></div>
+  ${scenHTML(sc,q)}
+  <h2 class="qtext"><span class="num">${i+1}.</span> ${fx(q.q)}</h2>
+  ${q.st?`<div class="stmts">${q.st.map(s=>{const x=T(s);return `<p><b>${esc(x.slice(0,1))}</b>${fx(x.slice(1))}</p>`}).join("")}</div><h2>${fx(q.q2)}</h2>`:""}
+  <p class="how" style="--h:var(--h-${q.type})">${esc(UI.how[q.type])}</p>
+  <div id="area">${areaHTML(q)}</div>
+  ${needsCheck(q.type)?`<button class="btn primary" id="check" disabled>${esc(UI.check)}</button>`:""}
+  <div id="fb"></div>`;
+  app.querySelectorAll(".figpage[data-out]").forEach(el=>{const r=el.attachShadow({mode:"open"});
+    r.innerHTML=`<style>:host{display:block;background:#fff;color:#000;font:16px/normal "Times New Roman",Times,serif;letter-spacing:normal;padding:8px 10px}a{pointer-events:none}</style>`+SC[el.dataset.out].out});
+  bind(q);
+  window.scrollTo({top:0});
+  clearInterval(tick);
+  tick=setInterval(()=>{left-=.2;
+    const arc=document.getElementById("arc"),sec=document.getElementById("sec"),ring=document.getElementById("ring");
+    if(arc)arc.style.strokeDashoffset=C*(1-Math.max(0,left)/TIME);
+    if(sec)sec.textContent=fmt(Math.max(0,Math.ceil(left)));
+    if(ring)ring.classList.toggle("low",left<=15);
+    if(left<=0){needsCheck(q.type)?check(q,true):answer(q,-1)}},200);
+}
+
+function bind(q){
+  if(!needsCheck(q.type)){app.querySelectorAll("#area .ans").forEach(b=>b.onclick=()=>answer(q,+b.dataset.k));return}
+  document.getElementById("check").onclick=()=>check(q,false);
+  if(q.type==="pick")app.querySelectorAll(".pickme [data-c]").forEach(el=>{if(el.tagName==="TH")return;el.onclick=e=>{e.stopPropagation();if(locked)return;const c=+el.dataset.c;st.sel.has(c)?st.sel.delete(c):st.sel.add(c);paint(q)}});
+  if(q.type==="input"){const ia=document.getElementById("ia");
+    ia.oninput=()=>{const allowed=new Set([...q.keys," "]);ia.value=[...ia.value.toUpperCase()].filter(c=>allowed.has(c)).join("");paint(q)};
+    ia.onkeydown=e=>{if(e.key==="Enter"&&ready(q))check(q,false)};}
+  const area=document.getElementById("area");
+  area.onclick=e=>{const b=e.target.closest("button");if(!b||locked)return;
+    if(q.type==="multi"){const k=+b.dataset.k;st.sel.has(k)?st.sel.delete(k):st.sel.add(k)}
+    else if(q.type==="rows"||q.type==="fill"){st.map[b.dataset.r]=+b.dataset.v}
+    else if(q.type==="match"){
+      if(b.dataset.l!=null){const l=+b.dataset.l;if(st.map[l]!=null)delete st.map[l];st.cur=l}
+      else if(b.dataset.r!=null&&st.cur!=null){const r=+b.dataset.r;for(const k in st.map)if(st.map[k]===r)delete st.map[k];st.map[st.cur]=r;
+        const nx=q.L.findIndex((_,k)=>st.map[k]==null);st.cur=nx>=0?nx:null}
+    }
+    else if(q.type==="bits"&&b.dataset.b!=null){const k=+b.dataset.b;st.bits[k]=st.bits[k]?0:1}
+    else if(q.type==="order"){if(b.dataset.p!=null)st.seq.push(+b.dataset.p);else if(b.dataset.s!=null)st.seq.splice(+b.dataset.s,1)}
+    else if(q.type==="input"&&b.dataset.key){const ia=document.getElementById("ia");ia.value=b.dataset.key==="DEL"?ia.value.slice(0,-1):ia.value+b.dataset.key}
+    paint(q)};
+  if(q.type==="match")st.cur=0;
+  paint(q);
+}
+
+function setScore(frac){
+  let pts=0,bonus=false;
+  if(frac>0)pts=Math.round((500+500*Math.max(0,left)/TIME)*frac);
+  if(frac===1){streak++;if(streak>=3){pts+=100;bonus=true}}else streak=0;
+  score+=pts;log.push(frac);hud();return {pts,bonus};
+}
+function feedback(q,frac,r,timeout,extra){
+  const cls=frac===1?"ok":frac>0?"part":"no";
+  const head=frac===1?UI.ok:frac>0?UI.part:(timeout?UI.time:UI.bad);
+  const fb=document.getElementById("fb");
+  fb.innerHTML=`<div class="feedback ${cls} pop"><div class="fh"><b>${esc(head)}</b><span>+${r.pts}${r.bonus?` (${esc(UI.bonus)})`:""}</span></div>${extra?`<p><strong>${extra}</strong></p>`:""}<p>${fx(q.e)}</p></div>
+  <button class="btn primary" id="nx" style="margin-top:14px">${esc(i+1<Q.length?UI.next:UI.results)}</button>`;
+  if(frac===1)confetti();
+  fb.scrollIntoView({behavior:RM?"auto":"smooth",block:"nearest"});
+  const nx=document.getElementById("nx");nx.focus({preventScroll:true});
+  nx.onclick=()=>{i++;i<Q.length?show():finish()};
+}
+function answer(q,k){
+  if(locked)return;locked=true;clearInterval(tick);
+  const correct=q.type==="tf"?(q.a?1:0):q.a, ok=k===correct;
+  app.querySelectorAll("#area .ans").forEach(b=>{const n=+b.dataset.k;b.disabled=true;
+    if(n===correct)b.classList.add("right");else if(n===k)b.classList.add("wrong");else b.classList.add("dim")});
+  const r=setScore(ok?1:0);
+  feedback(q,ok?1:0,r,k<0,!ok&&q.type==="mcq"?esc(UI.ans(q.a+1)):null);
+}
+function setFrac(sel,correct){const C=new Set(correct);let hit=0,wrong=0;sel.forEach(x=>C.has(x)?hit++:wrong++);return (hit===C.size&&wrong===0)?1:Math.max(0,(hit-wrong)/C.size)}
+function check(q,timeout){
+  if(locked)return;locked=true;clearInterval(tick);
+  const c=document.getElementById("check");if(c)c.remove();
+  let frac=0,extra=null;
+  if(q.type==="pick"){frac=setFrac(st.sel,q.cols);const C=new Set(q.cols);
+    app.querySelectorAll(".pickme th").forEach(th=>{const k=+th.dataset.c;th.classList.remove("on");
+      if(C.has(k))th.classList.add(st.sel.has(k)?"good":"miss");else if(st.sel.has(k))th.classList.add("bad")});
+    app.querySelectorAll(".pickme td.on").forEach(td=>td.classList.remove("on"));}
+  if(q.type==="multi"){frac=setFrac(st.sel,q.ans);const C=new Set(q.ans);
+    app.querySelectorAll(".opt").forEach(b=>{const k=+b.dataset.k;b.disabled=true;
+      if(C.has(k))b.classList.add(st.sel.has(k)?"good":"miss");else if(st.sel.has(k))b.classList.add("bad")});}
+  if(q.type==="rows"){let n=0;const lb=q.labels?q.labels.map(T):[UI.acc,UI.rej];
+    q.rows.forEach((r,k)=>{const row=app.querySelector(`.rrow[data-r="${k}"]`),ok=st.map[k]===r.a;if(ok)n++;
+      row.classList.add(ok?"good":"bad");const w=row.querySelector(".why");w.hidden=false;
+      w.innerHTML=`<b>${esc(r.a?lb[0]:lb[1])}.</b> ${fx(r.why)}`;row.querySelectorAll("button").forEach(b=>b.disabled=true)});
+    frac=n/q.rows.length;}
+  if(q.type==="fill"){let n=0;
+    q.items.forEach((it,k)=>{const row=app.querySelector(`.frow[data-r="${k}"]`),ok=st.map[k]===it.a;if(ok)n++;
+      row.classList.add(ok?"good":"bad");
+      row.querySelectorAll("button").forEach(b=>{const v=+b.dataset.v;b.disabled=true;b.classList.remove("on");
+        if(v===it.a)b.classList.add(ok?"good":"miss");else if(v===st.map[k])b.classList.add("bad")})});
+    frac=n/q.items.length;}
+  if(q.type==="match"){let n=0;st.cur=null;paint(q);
+    q.L.forEach((_,l)=>{const b=app.querySelector(`.mi[data-l="${l}"]`),ok=st.map[l]===l;if(ok)n++;b.classList.add(ok?"good":"bad");b.disabled=true;
+      if(!ok){const sm=document.createElement("small");sm.innerHTML=`${esc(UI.right)} ${fx(q.R[l])}`;b.querySelector("span:last-child").appendChild(sm)}});
+    app.querySelectorAll(".mi[data-r]").forEach(b=>b.disabled=true);
+    frac=n/q.L.length;}
+  if(q.type==="bits"){const s=st.bits.join("");frac=s===q.ans?1:0;
+    app.querySelectorAll(".bit").forEach(b=>{const k=+b.dataset.b;b.disabled=true;b.classList.add(String(st.bits[k])===q.ans[k]?"good":"bad")});
+    if(!frac)extra=`${esc(UI.right)} ${grp4(q.ans)}<sub>2</sub>`;}
+  if(q.type==="order"){let n=0;
+    app.querySelectorAll(".slot").forEach(b=>{const k=+b.dataset.s;b.disabled=true;const ok=st.seq[k]===k;if(ok)n++;b.classList.add(ok?"good":"bad")});
+    app.querySelectorAll("#pool button").forEach(b=>b.disabled=true);
+    frac=n/q.items.length;if(frac<1)extra=`${esc(UI.right)} ${q.items.map(fx).join(" → ")}`;}
+  if(q.type==="input"){const ia=document.getElementById("ia"),v=norm(ia.value,q);
+    frac=q.ans.some(a=>norm(a,q)===v)&&v.length?1:0;ia.disabled=true;ia.classList.add(frac?"good":"bad");
+    app.querySelectorAll(".keypad button").forEach(b=>b.disabled=true);
+    if(!frac)extra=`${esc(UI.right)} ${fx(q.show)}`;}
+  feedback(q,frac,setScore(frac),timeout&&frac===0,extra);
+}
+
+function finish(){
+  const full=log.filter(f=>f===1).length,pct=log.reduce((a,b)=>a+b,0)/Q.length;
+  const stars=pct>=.9?3:pct>=.6?2:pct>=.3?1:0;
+  const res=`${UI.resT}\n${UI.resName}: ${name}\n${UI.resScore}: ${score}\n${UI.resRight}: ${full} / ${Q.length}`;
+  i=Q.length;hud();
+  app.innerHTML=`<p class="muted" style="font-family:var(--display);font-weight:600">${esc(UI.final)}</p>
+  <div class="stars">${[0,1,2].map(k=>`<span class="star${k<stars?" on":""}"></span>`).join("")}</div>
+  <div class="big">${score}</div>
+  <h2>${esc(UI.fully(full,Q.length))}. ${esc(UI.msgs[stars])}</h2>
+  <div class="result" id="res">${esc(res)}</div>
+  <div class="row"><button class="btn primary" id="cp">${esc(UI.copy)}</button><button class="btn ghost" id="again">${esc(UI.again)}</button></div>
+  <p id="cpmsg" class="muted" aria-live="polite"></p>
+  <p class="muted" style="font-weight:600">${esc(UI.review)}</p>
+  <ol class="review">${Q.map((q,k)=>{const f=log[k];const c=f===1?"ok":f>0?"part":"bad";const s=f===1?"✓":f>0?"~":"✗";const t=T(q.q);
+    return `<li><span class="s ${c}">${s}</span>${fx(t.length>90?t.slice(0,90)+"…":t)}</li>`}).join("")}</ol>`;
+  window.scrollTo({top:0});
+  if(stars>=2)confetti();
+  document.getElementById("again").onclick=start;
+  document.getElementById("cp").onclick=()=>{
+    const m=document.getElementById("cpmsg");
+    const sel=()=>{const r=document.createRange();r.selectNodeContents(document.getElementById("res"));const s=getSelection();s.removeAllRanges();s.addRange(r);m.textContent=UI.selected};
+    try{navigator.clipboard.writeText(res).then(()=>m.textContent=UI.copied,sel)}catch(e){sel()}
+  };
+}
+
+function confetti(){
+  if(RM)return;
+  const cv=document.getElementById("fx"),x=cv.getContext("2d"),d=devicePixelRatio||1;
+  cv.width=innerWidth*d;cv.height=innerHeight*d;x.setTransform(d,0,0,d,0,0);
+  const cs=getComputedStyle(document.documentElement),cols=["--t1","--t2","--t3","--t4","--brand"].map(v=>cs.getPropertyValue(v).trim());
+  const P=Array.from({length:110},()=>({x:innerWidth/2+(Math.random()-.5)*120,y:innerHeight*.35,vx:(Math.random()-.5)*14,vy:-Math.random()*13-4,r:Math.random()*6.28,s:5+Math.random()*6,c:cols[Math.floor(Math.random()*cols.length)]}));
+  const t0=performance.now();
+  (function f(t){const k=(t-t0)/1400;x.clearRect(0,0,innerWidth,innerHeight);
+    if(k>=1)return;
+    P.forEach(p=>{p.vy+=.45;p.x+=p.vx;p.y+=p.vy;p.r+=.2;x.save();x.globalAlpha=1-k;x.translate(p.x,p.y);x.rotate(p.r);x.fillStyle=p.c;x.fillRect(-p.s/2,-p.s/4,p.s,p.s/2);x.restore()});
+    requestAnimationFrame(f)})(t0);
+}
+start();
+</script>
+</body>
+</html>
