@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Formula Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+Sinhala:wght@400;600;700&display=swap">
+<style>
+/* Layout: one spreadsheet application window. Title bar → name box + fx bar → grid (left) + task pane (right, below on phones) → sheet tabs = missions.
+   Deliberately single (light) theme: it imitates a spreadsheet app. */
+:root{
+  --desk:#DCE4E0; --win:#FFFFFF; --chrome:#F2F5F3; --line:#CCD7D1; --grid:#E1E8E4; --hdr:#EEF2F0;
+  --ink:#15221C; --muted:#5A6B63; --green:#12704E; --green-d:#0C5038; --green-ink:#FFFFFF;
+  --sel:#1E6FD9; --selbg:rgba(30,111,217,.10); --target:#E89B0C; --targetbg:#FFF4DC; --ok:#1C9A57; --bad:#D2443B;
+  --ui:"IBM Plex Sans","Noto Sans Sinhala","Iskoola Pota",system-ui,sans-serif;
+  --cond:"IBM Plex Sans Condensed","Noto Sans Sinhala",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{background:var(--desk)}
+body{color:var(--ink);font-family:var(--ui);font-size:16px;line-height:1.55;margin:0;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 32px}
+p{margin:0}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid var(--sel);outline-offset:2px}
+.win{max-width:1240px;margin:0 auto;background:var(--win);border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:0 18px 40px -18px rgba(12,48,34,.35);display:flex;flex-direction:column}
+.tbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--green);color:var(--green-ink);padding:10px 14px}
+.logo{display:flex;align-items:center;gap:9px;font-family:var(--cond);font-weight:700;font-size:20px;letter-spacing:.01em}
+.logo i{font-style:italic;font-family:Georgia,serif;font-weight:700;font-size:15px;background:#fff;color:var(--green);border-radius:6px;padding:1px 7px}
+.file{font-family:var(--mono);font-size:13px;opacity:.85}
+.who{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.who span{font-family:var(--mono);font-size:13px;background:rgba(255,255,255,.14);border-radius:6px;padding:2px 9px}
+.fxrow{display:flex;align-items:stretch;border-bottom:1px solid var(--line);background:var(--chrome)}
+.namebox{font-family:var(--mono);font-weight:600;font-size:14px;min-width:92px;padding:7px 10px;border-right:1px solid var(--line);background:#fff}
+.fxl{font-style:italic;font-family:Georgia,serif;font-weight:700;color:var(--muted);padding:6px 10px;border-right:1px solid var(--line)}
+.fxv{flex:1;min-width:0;font-family:var(--mono);font-size:14px;padding:7px 10px;background:#fff;white-space:nowrap;overflow-x:auto}
+.main{display:grid;grid-template-columns:minmax(0,1fr) 380px;min-height:520px}
+@media (max-width:900px){.main{grid-template-columns:1fr}}
+.gridwrap{overflow:auto;max-height:620px;border-right:1px solid var(--line);background:#fff}
+@media (max-width:900px){.gridwrap{max-height:52vh;border-right:0;border-bottom:1px solid var(--line)}}
+table.grid{border-collapse:collapse;font-family:var(--mono);font-size:14px;font-variant-numeric:tabular-nums;table-layout:fixed}
+.grid th{background:var(--hdr);color:var(--muted);font-weight:500;font-size:12.5px;border:1px solid var(--grid);height:26px;position:sticky;z-index:2}
+.grid thead th{top:0} .grid tbody th{left:0;width:40px;min-width:40px}
+.grid thead th.corner{left:0;z-index:3;width:40px}
+.grid td{border:1px solid var(--grid);height:32px;width:116px;min-width:116px;max-width:116px;padding:0 7px;white-space:nowrap;overflow:hidden;text-overflow:clip;cursor:cell;position:relative;background:#fff}
+.grid td.wide{width:200px;min-width:200px;max-width:200px}
+@media (max-width:600px){.grid td{width:86px;min-width:86px;max-width:86px;font-size:13px;padding:0 5px}.grid td.wide{width:150px;min-width:150px;max-width:150px}}
+.grid td.r{text-align:right} .grid td.c{text-align:center} .grid td.b{font-weight:600}
+.grid td.wrap{white-space:normal;line-height:1.2;font-size:12.5px}
+.grid td.spill{overflow:visible;z-index:1;background:transparent}
+.grid td.f{color:#0C4D86}
+.grid td.err{color:var(--bad)}
+.grid td.insel{background:var(--selbg)}
+.grid td.cur{box-shadow:inset 0 0 0 2px var(--sel);z-index:1}
+.grid td.cur::after{content:"";position:absolute;right:-1px;bottom:-1px;width:7px;height:7px;background:var(--sel);border:1px solid #fff}
+.grid td.tgt{background:var(--targetbg);box-shadow:inset 0 0 0 2px var(--target)}
+.grid td.tgt.cur{box-shadow:inset 0 0 0 2px var(--sel),inset 0 0 0 4px var(--target)}
+.grid td.src{box-shadow:inset 0 0 0 2px var(--green);background:#E7F4EE}
+.grid td.good{background:#E3F6EA} .grid td.bad{background:#FCE7E5}
+.grid td.mask{color:var(--target);font-weight:600;text-align:center}
+.grid th.hl{background:#D9E7FB;color:var(--sel);font-weight:700}
+.panel{display:flex;flex-direction:column;gap:14px;padding:16px;background:var(--chrome);min-width:0}
+.ptitle{font-family:var(--cond);font-weight:700;font-size:22px;line-height:1.2}
+.pkicker{font-family:var(--mono);font-size:12.5px;color:var(--muted)}
+.tdots{display:flex;gap:5px;flex-wrap:wrap}
+.tdots i{width:22px;height:6px;border-radius:3px;background:var(--line)}
+.tdots i.ok{background:var(--ok)} .tdots i.miss{background:var(--bad)} .tdots i.cur{background:var(--target)}
+.task{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:12px}
+.ttype{display:inline-flex;align-self:flex-start;font-family:var(--mono);font-size:12px;font-weight:600;color:var(--green-d);background:#E1F1E9;border-radius:5px;padding:2px 8px}
+.tq{font-weight:600;font-size:16.5px;line-height:1.5}
+.how{font-size:14px;color:var(--muted)}
+.fchip{font-family:var(--mono);font-weight:600;font-size:16px;background:#F4F7FB;border:1px solid #D5DFEA;border-radius:8px;padding:8px 10px;overflow-x:auto;white-space:nowrap;color:#0C4D86}
+.fchip small{display:block;font-family:var(--ui);font-weight:500;font-size:12px;color:var(--muted)}
+input.ans{width:100%;font-family:var(--mono);font-size:17px;font-weight:600;padding:10px 12px;border:2px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}
+input.ans:focus{border-color:var(--sel);outline:none}
+input.ans.good{border-color:var(--ok)} input.ans.bad{border-color:var(--bad)}
+.keys{display:flex;gap:6px;flex-wrap:wrap}
+.keys button{font-family:var(--mono);font-weight:600;font-size:14px;padding:6px 9px;border:1px solid var(--line);border-radius:6px;background:#fff;box-shadow:0 2px 0 var(--line)}
+.keys button.fn{color:var(--green-d)}
+.keys button:active{transform:translateY(1px)}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opt{display:flex;align-items:center;gap:10px;text-align:left;padding:10px 12px;border:2px solid var(--line);border-radius:8px;background:#fff;font-weight:500}
+.opt .k{flex:none;font-family:var(--mono);font-weight:600;color:var(--muted)}
+.opt svg{flex:none}
+.opt.on{border-color:var(--sel);background:var(--selbg)}
+.opt.good{border-color:var(--ok);background:#E3F6EA} .opt.bad{border-color:var(--bad);background:#FCE7E5}
+.opt code{font-family:var(--mono);font-size:14px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{font-family:var(--ui);font-weight:700;font-size:15.5px;border-radius:8px;padding:10px 16px}
+.btn.pri{background:var(--green);color:var(--green-ink);box-shadow:0 3px 0 var(--green-d)}
+.btn.pri:disabled{opacity:.45;cursor:not-allowed}
+.btn.sec{border:1px solid var(--line);background:#fff}
+.btn:active:not(:disabled){transform:translateY(1px)}
+.fb{border-radius:8px;padding:10px 12px;font-size:14.5px;display:flex;flex-direction:column;gap:4px}
+.fb.ok{background:#E3F6EA;border:1px solid #A9DDBE} .fb.no{background:#FCE7E5;border:1px solid #F0B7B2}
+.fb b{font-family:var(--cond);font-size:17px}
+.fb.ok b{color:var(--ok)} .fb.no b{color:var(--bad)}
+.fb code{font-family:var(--mono);font-weight:600}
+.stars{display:inline-flex;gap:4px}
+.star{width:18px;height:18px;background:var(--line);clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)}
+.star.on{background:var(--target)}
+.stars.big .star{width:42px;height:42px}
+.tabs{display:flex;align-items:stretch;gap:2px;background:var(--hdr);border-top:1px solid var(--line);padding:0 8px;overflow-x:auto}
+.tab{flex:none;display:flex;align-items:center;gap:7px;font-size:14px;font-weight:600;padding:8px 14px;border:1px solid transparent;border-top:0;border-radius:0 0 8px 8px;color:var(--muted);white-space:nowrap}
+.tab.on{background:#fff;border-color:var(--line);color:var(--green-d);box-shadow:inset 0 3px 0 var(--green)}
+.tab:disabled{opacity:.5;cursor:not-allowed}
+.tab .mini{display:inline-flex;gap:1px}.tab .mini i{width:8px;height:8px;background:var(--line);clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)}
+.tab .mini i.on{background:var(--target)}
+.welcome h1{font-family:var(--cond);font-weight:700;font-size:clamp(30px,5vw,42px);line-height:1.05;margin:0}
+.welcome h1 em{font-style:italic;font-family:Georgia,serif;color:var(--green)}
+label{font-weight:600}
+input.nm{width:100%;font:inherit;padding:10px 12px;border:2px solid var(--line);border-radius:8px}
+input.nm:focus{border-color:var(--green);outline:none}
+.result{font-family:var(--mono);font-size:13.5px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px;white-space:pre-wrap;user-select:all}
+.foot{max-width:1240px;margin:12px auto 0;font-size:13px;color:var(--muted)}
+#fx{position:fixed;inset:0;pointer-events:none;z-index:20}
+</style>
+</head>
+<body>
+
+<canvas id="fx"></canvas>
+<div class="win">
+  <header class="tbar"><span class="logo"><i>fx</i><span id="appname"></span></span><span class="file">Lesson07.xlsx</span><span class="who" id="who"></span></header>
+  <div class="fxrow"><div class="namebox" id="nb">A1</div><span class="fxl">fx</span><div class="fxv" id="fxv"></div></div>
+  <div class="main"><div class="gridwrap"><table class="grid" id="grid"></table></div><aside class="panel" id="panel" aria-live="polite"></aside></div>
+  <nav class="tabs" id="tabs"></nav>
+</div>
+<p class="foot">Nilupul Weerasinghe · Online O/L ICT · 076 135 5516</p>
+
+<script>
+const LANG="en";
+const T=x=>(x&&typeof x==="object"&&!Array.isArray(x)&&("en" in x))?x[LANG]:x;
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const RM=matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* ================= Formula engine ================= */
+const colName=n=>{let s="";n++;while(n>0){const m=(n-1)%26;s=String.fromCharCode(65+m)+s;n=Math.floor((n-1)/26)}return s};
+const colNum=s=>{let n=0;for(const c of s)n=n*26+(c.charCodeAt(0)-64);return n-1};
+const split=a=>{const m=/^\$?([A-Z]{1,3})\$?(\d+)$/.exec(a.toUpperCase());return m?{c:colNum(m[1]),r:+m[2]}:null};
+const addr=(c,r)=>colName(c)+r;
+function rangeCells(a,b){const p=split(a),q=split(b),out=[];
+  for(let r=Math.min(p.r,q.r);r<=Math.max(p.r,q.r);r++)for(let c=Math.min(p.c,q.c);c<=Math.max(p.c,q.c);c++)out.push(addr(c,r));return out}
+function tokenize(s){const t=[];let i=0;s=s.toUpperCase();
+  while(i<s.length){const ch=s[i],rest=s.slice(i);let m;
+    if(/\s/.test(ch)){i++;continue}
+    if((m=/^\d+(\.\d+)?/.exec(rest))){t.push({k:"num",v:parseFloat(m[0])});i+=m[0].length;continue}
+    if((m=/^\$?[A-Z]{1,3}\$?\d+/.exec(rest))){t.push({k:"ref",v:m[0]});i+=m[0].length;continue}
+    if((m=/^[A-Z]+(?=\s*\()/.exec(rest))){t.push({k:"fn",v:m[0]});i+=m[0].length;continue}
+    if("+-*/^(),:".includes(ch)){t.push({k:ch});i++;continue}
+    throw new Error("bad")}
+  return t}
+function parse(tk){let p=0;const peek=()=>tk[p],next=()=>tk[p++];
+  const expect=k=>{const t=next();if(!t||t.k!==k)throw new Error("bad");return t};
+  const is=k=>peek()&&peek().k===k;
+  function expr(){let n=term();while(is("+")||is("-")){const op=next().k;n={op,a:n,b:term()}}return n}
+  function term(){let n=factor();while(is("*")||is("/")){const op=next().k;n={op,a:n,b:factor()}}return n}
+  function factor(){let n=unary();while(is("^")){next();n={op:"^",a:n,b:unary()}}return n}
+  function unary(){if(is("-")){next();return {op:"neg",a:unary()}}if(is("+")){next();return unary()}return prim()}
+  function prim(){const t=next();if(!t)throw new Error("bad");
+    if(t.k==="num")return {op:"num",v:t.v};
+    if(t.k==="ref"){if(is(":")){next();const u=expect("ref");return {op:"range",a:t.v,b:u.v}}return {op:"ref",v:t.v}}
+    if(t.k==="fn"){expect("(");const args=[];if(!is(")")){args.push(expr());while(is(",")){next();args.push(expr())}}expect(")");return {op:"fn",name:t.v,args}}
+    if(t.k==="("){const n=expr();expect(")");return n}
+    throw new Error("bad")}
+  const n=expr();if(p!==tk.length)throw new Error("bad");return n}
+class Err{constructor(c){this.c=c}}
+function rawVal(sh,a,stack){const k=a.replace(/\$/g,"").toUpperCase(),c=sh[k];if(!c)return null;
+  if(c.f!=null){if(stack.has(k))return new Err("#REF!");stack.add(k);const v=evalF(sh,c.f,stack);stack.delete(k);return v}
+  return c.v}
+function evalF(sh,f,stack=new Set()){
+  let ast;try{ast=parse(tokenize(String(f).replace(/^\s*=/,"")))}catch(e){return new Err("#NAME?")}
+  const num=v=>{if(v instanceof Err)throw v;if(v==null||v==="")return 0;if(typeof v==="number")return v;throw new Err("#VALUE!")};
+  function ev(n){switch(n.op){
+    case "num":return n.v;case "ref":return rawVal(sh,n.v,stack);case "range":throw new Err("#VALUE!");
+    case "neg":return -num(ev(n.a));
+    case "+":return num(ev(n.a))+num(ev(n.b));case "-":return num(ev(n.a))-num(ev(n.b));
+    case "*":return num(ev(n.a))*num(ev(n.b));
+    case "/":{const a=num(ev(n.a)),b=num(ev(n.b));if(b===0)throw new Err("#DIV/0!");return a/b}
+    case "^":return Math.pow(num(ev(n.a)),num(ev(n.b)));
+    case "fn":{const vals=[];
+      for(const a of n.args){
+        if(a.op==="range"){for(const ad of rangeCells(a.a,a.b)){const v=rawVal(sh,ad,stack);if(v instanceof Err)throw v;if(typeof v==="number")vals.push(v)}}
+        else if(a.op==="ref"){const v=rawVal(sh,a.v,stack);if(v instanceof Err)throw v;if(typeof v==="number")vals.push(v)}
+        else vals.push(num(ev(a)))}
+      const s=vals.reduce((x,y)=>x+y,0);
+      switch(n.name){case "SUM":return s;case "AVERAGE":if(!vals.length)throw new Err("#DIV/0!");return s/vals.length;
+        case "MAX":return vals.length?Math.max(...vals):0;case "MIN":return vals.length?Math.min(...vals):0;case "COUNT":return vals.length;
+        default:throw new Err("#NAME?")}}
+  }}
+  try{return ev(ast)}catch(e){if(e instanceof Err)return e;throw e}
+}
+function shiftF(f,dr,dc){return String(f).toUpperCase().replace(/(\$?)([A-Z]{1,3})(\$?)(\d+)/g,(m,d1,col,d2,row)=>
+  d1+(d1?col:colName(Math.max(0,colNum(col)+dc)))+d2+(d2?row:String(Math.max(1,+row+dr))))}
+const normF=s=>String(s).toUpperCase().replace(/\s+/g,"");
+const fmtV=v=>v instanceof Err?v.c:typeof v==="number"?(Number.isInteger(v)?String(v):String(Math.round(v*100)/100)):v==null?"":String(v);
+const near=(a,b)=>typeof a==="number"&&typeof b==="number"&&Math.abs(a-b)<0.006;
+
+/* ================= Text ================= */
+const UIS={
+si:{app:"සූත්‍ර විද්‍යාගාරය",lesson:"10 ශ්‍රේණිය · පාඩම 07 · විද්‍යුත් පැතුරුම්පත",
+ welcome:"මෙය සැබෑ පැතුරුම්පතක් ලෙස ක්‍රියා කරයි. කෝෂ තට්ටු කරන්න, පරාස තෝරන්න, සූත්‍ර ලියන්න. ඔබේ සූත්‍රය නිවැරදි දැයි පැතුරුම්පත ම ගණනය කර පරීක්ෂා කරයි.",
+ welcome2:"පහළ ඇති පත්‍ර (sheet tabs) හයම ඔබේ වැඩ කොටස් වේ. පළමු උත්සාහයෙන්ම හරි ගියොත් තරු වැඩියි.",
+ nameL:"ඔබේ නම",nameP:"උදා: Kavindu",start:"ආරම්භ කරන්න",
+ types:{tap:"කෝෂය තට්ටු කරන්න",select:"පරාසය තෝරන්න",number:"උත්තරය ලියන්න",predict:"ප්‍රතිඵලය අනුමාන කරන්න",formula:"සූත්‍රය ලියන්න",copy:"පිටපත් කළ විට",choose:"තෝරන්න"},
+ how:{tap:"පත්‍රයේ කෝෂය තට්ටු කර 'පරීක්ෂා කරන්න' ඔබන්න.",select:"පළමු කෝෂය තට්ටු කර, ඊළඟට අවසාන කෝෂය තට්ටු කරන්න. නැවත ආරම්භ කිරීමට තුන්වන වරට තට්ටු කරන්න.",number:"සංඛ්‍යාව ලියන්න.",
+  predict:"පැතුරුම්පත ගණනය කිරීමට පෙර ඔබ ගණනය කරන්න. කෝෂයේ පෙනෙන අගය ලියන්න.",formula:"= ලකුණෙන් ආරම්භ කරන්න. ලිපිනයක් එක් කිරීමට පත්‍රයේ කෝෂයක් තට්ටු කළ හැකියි.",
+  copy:"නව කෝෂයේ පෙනෙන සූත්‍රය ලියන්න. $ ඇති කොටස වෙනස් නොවේ.",choose:"එක් උත්තරයක් තෝරන්න."},
+ predictQ:c=>`${c} කෝෂයේ මෙම සූත්‍රය ඇත. එය පෙන්වන අගය කුමක් ද?`,inCell:c=>`${c} කෝෂයේ ඇති සූත්‍රය`,
+ check:"පරීක්ෂා කරන්න",next:"ඊළඟ කාර්යය",show:"උත්තරය පෙන්වන්න",finish:"පත්‍රය අවසන් කරන්න",taskOf:(a,b)=>`කාර්යය ${a} / ${b}`,
+ ok:"හරි!",no:"තවම හරි නැහැ",hint:"ඉඟිය:",answer:"උත්තරය:",
+ needEq:"සූත්‍රයක් = ලකුණෙන් ආරම්භ විය යුතුයි. නැත්නම් එය ලේබලයක් (පාඨයක්) පමණයි.",badF:"පැතුරුම්පතට මෙම සූත්‍රය කියවිය නොහැක. වරහන්, කොමා සහ කෝෂ ලිපින පරීක්ෂා කරන්න.",
+ needFn:f=>`මෙහි ${f} ශ්‍රිතය භාවිත කරන්න.`,noNum:"සංඛ්‍යා ටයිප් නොකරන්න. කෝෂ ලිපින පමණක් භාවිත කරන්න.",
+ gives:(c,v)=>`ඔබේ සූත්‍රය ${c} හි ${v} පෙන්වයි. අවශ්‍ය අගය එය නොවේ.`,copyFail:(a,b,v)=>`${a} හි හරි, නමුත් ${b} ට පිටපත් කළ විට ${v} පෙන්වයි.`,
+ picked:a=>`ඔබ තෝරා ඇත්තේ ${a}.`,wrongNum:v=>`${v} නිවැරදි නැහැ.`,copyWrong:"පිටපත් කළ විට පෙනෙන්නේ එය නොවේ.",nothing:"තවම කිසිවක් තෝරා නැත.",
+ done:"පත්‍රය අවසන්!",first:(n,m)=>`පළමු උත්සාහයෙන් ${m}න් ${n}ක් හරි`,nextSheet:"ඊළඟ පත්‍රය →",again:"නැවත කරන්න",
+ report:"වාර්තාව",repH:"මගේ වාර්තාව",repSheet:"පත්‍රය",repStars:"තරු",repTotal:"එකතුව",copy:"වාර්තාව copy කරන්න",copied:"Copy කළා! දැන් class chat එකට paste කරන්න.",selected:"Text එක select කළා. Copy කර chat එකට paste කරන්න.",
+ repNote:"මෙම වාර්තාවත් පැතුරුම්පතකි. B8 හි =SUM(B2:B7) බලන්න!",resT:"ICT පාඩම 07 · සූත්‍ර විද්‍යාගාරය",resName:"නම",stars:"තරු"},
+en:{app:"Formula Lab",lesson:"Grade 10 · Lesson 07 · Electronic spreadsheet",
+ welcome:"This works like a real spreadsheet. Tap cells, select ranges and type formulas. The sheet calculates your formula itself to check it.",
+ welcome2:"The six sheet tabs at the bottom are your missions. Get it right first time to earn more stars.",
+ nameL:"Your name",nameP:"e.g. Kavindu",start:"Start",
+ types:{tap:"Tap the cell",select:"Select the range",number:"Type the answer",predict:"Predict the result",formula:"Write the formula",copy:"What moves when you copy",choose:"Choose"},
+ how:{tap:"Tap the cell in the sheet, then press Check.",select:"Tap the first cell, then tap the last cell. Tap a third time to start again.",number:"Type the number.",
+  predict:"Work it out before the sheet does. Type the value the cell will show.",formula:"Start with =. You can tap a cell in the sheet to add its address.",
+  copy:"Type the formula that appears in the new cell. The part with $ doesn't move.",choose:"Pick one answer."},
+ predictQ:c=>`${c} contains this formula. What value will it show?`,inCell:c=>`Formula in ${c}`,
+ check:"Check",next:"Next task",show:"Show answer",finish:"Finish sheet",taskOf:(a,b)=>`Task ${a} of ${b}`,
+ ok:"Correct!",no:"Not yet",hint:"Hint:",answer:"Answer:",
+ needEq:"A formula must start with =. Otherwise it's just a label (text).",badF:"The sheet can't read this formula. Check the brackets, commas and cell addresses.",
+ needFn:f=>`Use the ${f} function here.`,noNum:"Don't type the numbers. Use cell addresses only.",
+ gives:(c,v)=>`Your formula shows ${v} in ${c}. That isn't the value we need.`,copyFail:(a,b,v)=>`It works in ${a}, but when copied to ${b} it shows ${v}.`,
+ picked:a=>`You picked ${a}.`,wrongNum:v=>`${v} isn't right.`,copyWrong:"That isn't what appears after copying.",nothing:"Nothing selected yet.",
+ done:"Sheet complete!",first:(n,m)=>`${n} of ${m} right first time`,nextSheet:"Next sheet →",again:"Play again",
+ report:"Report",repH:"My report",repSheet:"Sheet",repStars:"Stars",repTotal:"Total",copy:"Copy my report",copied:"Copied! Now paste it in the class chat.",selected:"Text selected. Copy it and paste it in the class chat.",
+ repNote:"This report is a spreadsheet too. Look at the =SUM(B2:B7) in B8!",resT:"ICT Lesson 07 · Formula Lab",resName:"Name",stars:"stars"}
+};
+const UI=UIS[LANG];
+
+/* ================= Missions ================= */
+const HINT_ORDER={si:"පිළිවෙළ: ( ) → ^ → * / → + −. එකම මට්ටමේ නම් වමේ සිට දකුණට.",en:"Order: ( ) → ^ → * / → + −. On the same level, go left to right."};
+const marks={A1:"Name",B1:"Maths",C1:"Science",A2:"Amal",B2:40,C2:55,A3:"Nimal",B3:65,C3:70,A4:"Kasun",B4:72,C4:48,A5:"Dilini",B5:58,C5:81};
+const elec={A3:"Cost per Unit (Rs.)",B3:20,A4:"S.N.",B4:"HouseHold No",C4:"Units Used",E4:"Total Bill (Rs.)",
+  A5:1,B5:"0003990",C5:80,A6:2,B6:"0003991",C6:120,A7:3,B7:"0003992",C7:30,A8:4,B8:"0003993",C8:200,A9:5,B9:"0003994",C9:0,A10:6,B10:"0003995",C10:60};
+const M=[
+{id:"m1",tab:{si:"කෝෂ",en:"Cells"},title:{si:"කෝෂ සහ පරාස",en:"Cells and ranges"},cols:4,rows:5,
+ data:Object.assign({},marks,{D1:"ICT",D2:62,D3:90,D4:77,D5:66}),
+ tasks:[
+  {type:"tap",ans:"D3",q:{si:"D3 කෝෂය තට්ටු කරන්න.",en:"Tap cell D3."},hint:{si:"මුලින් තීරුවේ අකුර (D), ඊළඟට පේළියේ අංකය (3).",en:"Column letter first (D), then the row number (3)."},e:{si:"D3 = නිමල්ගේ ICT ලකුණ, 90. කෝෂ ලිපිනය = තීරුව + පේළිය.",en:"D3 is Nimal's ICT mark, 90. A cell address is the column, then the row."}},
+  {type:"select",ans:"B2:B5",q:{si:"B2:B5 පරාසය තෝරන්න (ගණිත ලකුණු සියල්ල).",en:"Select the range B2:B5 (all the Maths marks)."},hint:{si:"B2 තට්ටු කර, ඊළඟට B5 තට්ටු කරන්න.",en:"Tap B2, then tap B5."},e:{si:"පරාසය = එකට ඇති කෝෂ කොටසක්, පළමු කෝෂය : අවසාන කෝෂය ලෙස ලියයි.",en:"A range is a block of touching cells, written as first cell : last cell."}},
+  {type:"select",ans:"B3:D4",q:{si:"නිමල්ගේ සහ කසුන්ගේ ලකුණු සියල්ල එකම පරාසයක් ලෙස තෝරන්න.",en:"Select all of Nimal's and Kasun's marks as one range."},hint:{si:"ඉහළ වම් කෝෂය B3, පහළ දකුණු කෝෂය D4.",en:"The top-left cell is B3 and the bottom-right cell is D4."},e:{si:"B3:D4 = පේළි 2 × තීරු 3 = කෝෂ 6.",en:"B3:D4 = 2 rows × 3 columns = 6 cells."}},
+  {type:"number",ans:9,q:{si:"B2:D4 පරාසයේ කෝෂ කීයක් තිබේ ද? (2025 O/L)",en:"How many cells are in the range B2:D4? (2025 O/L)"},hint:{si:"පේළි (2 සිට 4) සහ තීරු (B සිට D) ගණන් කර, ගුණ කරන්න.",en:"Count the rows (2 to 4) and the columns (B to D), then multiply."},e:{si:"පේළි 2, 3, 4 = 3 · තීරු B, C, D = 3 · 3 × 3 = 9.",en:"Rows 2, 3, 4 = 3 and columns B, C, D = 3, so 3 × 3 = 9."}},
+  {type:"choose",o:["A4","BZ","A1:B3","7"],a:1,q:{si:"පහත ඒවායින් තීරු නාමයක් වන්නේ කුමක් ද? (2024 O/L)",en:"Which of these is a column name? (2024 O/L)"},hint:{si:"තීරු නම් කරන්නේ අකුරු පමණක් භාවිතයෙන්.",en:"Columns are named with letters only."},e:{si:"A … Z, ඉන්පසු AA … BZ. A4 කෝෂයකි, A1:B3 පරාසයකි, 7 පේළියකි.",en:"A … Z, then AA … BZ. A4 is a cell, A1:B3 is a range and 7 is a row."}},
+  {type:"choose",o:["I සහ II පමණි|I and II only","I සහ IV පමණි|I and IV only","II සහ III පමණි|II and III only","III සහ IV පමණි|III and IV only"],a:0,
+   q:{si:"වලංගු කෝෂ ලිපින මොනවා ද? (2022 O/L)   I: K2   II: $K$2   III: K2$   IV: K$2$",en:"Which are valid cell addresses? (2022 O/L)   I: K2   II: $K$2   III: K2$   IV: K$2$"},hint:{si:"$ ලකුණ යන්නේ අකුරට හෝ අංකයට ඉදිරියෙන් පමණි.",en:"The $ goes before the letter or the number, never after."},e:{si:"K2 සහ $K$2 වලංගුයි. K2$ සහ K$2$ හි $ අවසානයේ ඇති නිසා වලංගු නැත.",en:"K2 and $K$2 are valid. K2$ and K$2$ have a $ at the end, so they are not."}}]},
+{id:"m2",tab:{si:"ක්‍රියාකාරක",en:"Operators"},title:{si:"ක්‍රියාකාරක සහ පිළිවෙළ",en:"Operators and the order"},cols:5,rows:4,
+ data:{A1:3,B1:2,C1:4,A2:5,B2:7,C2:6,A3:8,B3:9,C3:1},
+ tasks:[
+  {type:"predict",cell:"E1",f:"=2+4*3",hint:HINT_ORDER,e:{si:"මුලින් 4*3 = 12, ඉන්පසු 2 + 12 = 14.",en:"First 4*3 = 12, then 2 + 12 = 14."}},
+  {type:"predict",cell:"E2",f:"=(2+4)*3",hint:HINT_ORDER,e:{si:"වරහන් මුලින්: 6*3 = 18.",en:"Brackets first: 6*3 = 18."}},
+  {type:"predict",cell:"E3",f:"=4*3^2",hint:HINT_ORDER,e:{si:"^ මුලින්: 3^2 = 9, ඉන්පසු 4*9 = 36.",en:"^ first: 3^2 = 9, then 4*9 = 36."}},
+  {type:"predict",cell:"E4",f:"=8/4*2",hint:HINT_ORDER,e:{si:"* සහ / එකම මට්ටමේ නිසා වමේ සිට: 8/4 = 2, 2*2 = 4.",en:"* and / are on the same level, so go left to right: 8/4 = 2, then 2*2 = 4."}},
+  {type:"predict",cell:"D3",f:"=A1^C3*(C1-B1)",tag:"2022 O/L",hint:HINT_ORDER,e:{si:"A1=3, C3=1, C1=4, B1=2. වරහන්: 4−2 = 2. 3^1 = 3. 3*2 = 6.",en:"A1=3, C3=1, C1=4, B1=2. Brackets: 4−2 = 2. Then 3^1 = 3, and 3*2 = 6."}},
+  {type:"predict",cell:"D1",f:"=COUNT(A1:C1, B2)",tag:"2022 O/L",hint:{si:"COUNT සංඛ්‍යා ඇති කෝෂ ගණන් කරයි.",en:"COUNT counts the cells that hold a number."},e:{si:"A1:C1 හි සංඛ්‍යා 3ක් + B2 = තවත් 1ක්. COUNT = 4.",en:"A1:C1 holds 3 numbers, and B2 is 1 more, so COUNT gives 4."}},
+  {type:"predict",cell:"D2",f:"=C2/(A2+C3)*B1",hint:HINT_ORDER,e:{si:"වරහන්: 5+1 = 6. 6/6 = 1. 1*2 = 2.",en:"Brackets: 5+1 = 6. Then 6/6 = 1, and 1*2 = 2."}}]},
+{id:"m3",tab:{si:"සූත්‍ර",en:"Formulas"},title:{si:"සූත්‍ර ලිවීම",en:"Writing formulas"},cols:5,rows:5,
+ data:Object.assign({},marks,{D1:"Total",E1:"Average"}),
+ tasks:[
+  {type:"formula",cell:"D2",sol:"=B2+C2",noNum:true,fill:["D3","D4","D5"],q:{si:"D2 හි අමල්ගේ ගණිත සහ විද්‍යා ලකුණු එකතු කරන සූත්‍රයක් ලියන්න. සංඛ්‍යා නොව කෝෂ ලිපින භාවිත කරන්න.",en:"In D2, write a formula that adds Amal's Maths and Science marks. Use cell addresses, not the numbers."},hint:{si:"= ලකුණෙන් පටන් ගෙන, B2 සහ C2 ලිපින දෙක එකතු කරන්න.",en:"Start with =, then add the two cell addresses B2 and C2."},e:{si:"=B2+C2 → 95. ලකුණක් වෙනස් වුණොත් එකතුවත් ස්වයංක්‍රීයව වෙනස් වේ. එය D3:D5 ටත් පිටපත් කළා.",en:"=B2+C2 gives 95. If a mark changes, the total updates by itself. It has been copied down to D3:D5 for you."}},
+  {type:"copy",from:"D2",f:"=B2+C2",to:"D5",q:{si:"D2 හි සූත්‍රය fill handle මගින් D5 දක්වා පහළට පිටපත් කළා. D5 හි පෙනෙන සූත්‍රය කුමක් ද?",en:"D2's formula was copied down to D5 with the fill handle. What formula appears in D5?"},hint:{si:"පහළට පිටපත් කරන විට පේළි අංකය වෙනස් වේ.",en:"Copying down changes the row number."},e:{si:"පේළි 2 → 5. =B5+C5.",en:"Row 2 becomes row 5: =B5+C5."}},
+  {type:"formula",cell:"E2",sol:"=AVERAGE(B2:C2)",fn:"AVERAGE",q:{si:"E2 හි අමල්ගේ ගණිත සහ විද්‍යා ලකුණුවල සාමාන්‍යය ශ්‍රිතයක් භාවිතයෙන් සොයන්න.",en:"In E2, use a function to find the average of Amal's Maths and Science marks."},hint:{si:"AVERAGE( ඊළඟට B2:C2 පරාසය, ඊළඟට ).",en:"AVERAGE( then the range B2:C2, then )."},e:{si:"=AVERAGE(B2:C2) = (40+55)/2 = 47.5.",en:"=AVERAGE(B2:C2) = (40+55)/2 = 47.5."}},
+  {type:"choose",o:[{si:"B2 හෝ C2 වෙනස් වූ විට පිළිතුර ස්වයංක්‍රීයව වෙනස් වේ",en:"It updates by itself when B2 or C2 changes"},{si:"ටයිප් කිරීමට කෙටියි",en:"It is shorter to type"},{si:"කෝෂයේ සූත්‍රය පෙන්වයි",en:"It shows the formula in the cell"},{si:"පිළිතුර තද අකුරින් පෙන්වයි",en:"It makes the answer bold"}],a:0,
+   q:{si:"=40+55 ට වඩා =B2+C2 හොඳ ඇයි?",en:"Why is =B2+C2 better than =40+55?"},hint:{si:"ලකුණක් වෙනස් වූ විට කුමක් සිදු වේ ද?",en:"What happens when a mark changes?"},e:{si:"=A2*B2 වැනි සූත්‍ර A2 හෝ B2 වෙනස් වූ විට යාවත්කාලීන වේ. =8*5 එසේ නොවේ.",en:"=A2*B2 updates when A2 or B2 changes. =8*5 does not."}},
+  {type:"choose",o:[{si:"A2 සහ B2 ගුණ කරන සූත්‍රයක්",en:"A formula that multiplies A2 and B2"},{si:"ටයිප් කළ ආකාරයටම පෙන්වන ලේබලයක් (පාඨයක්)",en:"A label (text), shown exactly as typed"},{si:"අගයක් (සංඛ්‍යාවක්)",en:"A value (number)"},{si:"දෝෂ පණිවිඩයක්",en:"An error message"}],a:1,
+   q:{si:"සිසුවෙක් කෝෂයකට D2=A2*B2 ලෙස ටයිප් කරයි (මුලින් = නැත). කෝෂයේ ඇත්තේ කුමක් ද?",en:"A student types D2=A2*B2 into a cell (with no = at the start). What does the cell hold?"},hint:{si:"සූත්‍රයක් ආරම්භ විය යුත්තේ කුමකින් ද?",en:"What must a formula start with?"},e:{si:"සූත්‍රයක් = න් ආරම්භ විය යුතුයි. = ට වමට කිසිවක් තිබුණොත් එය ලේබලයකි.",en:"A formula must start with =. With anything before the =, it is a label."}},
+  {type:"choose",o:["0712345678","712345678","07-1234-5678","#VALUE!"],a:1,
+   q:{si:"0712345678 දුරකථන අංකය අගයක් (number) ලෙස කෝෂයකට ටයිප් කළ විට පෙනෙන්නේ කුමක් ද?",en:"The phone number 0712345678 is typed into a cell as a value (number). What does the cell show?"},hint:{si:"සංඛ්‍යාවක මුලින් ඇති 0 ට කුමක් වේ ද?",en:"What happens to a 0 at the front of a number?"},e:{si:"අගයක් ලෙස මුල් 0 නැති වේ. ටයිප් කිරීමට පෙර පරාසය Text ලෙස හැඩගන්වන්න.",en:"As a value, the leading 0 is dropped. Format the range as Text before typing."}}]},
+{id:"m4",tab:{si:"ශ්‍රිත",en:"Functions"},title:{si:"ශ්‍රිත පහ",en:"Five functions"},cols:5,rows:12,wide:["A"],
+ data:{A1:"Name",B1:"1st Term",C1:"2nd Term",D1:"3rd Term",E1:"Average",A2:"Shanaya",B2:57,C2:70,D2:"absent",A3:"Nethmi",B3:45,C3:55,D3:66,A4:"Asjath",B4:75,C4:68,D4:"absent",
+  A5:"Bimsara",B5:45,C5:57,D5:70,A6:"Vasuki",B6:56,C6:67,D6:78,A7:"MalRaj",B7:45,C7:35,D7:55,A8:"Vasanthar",B8:40,C8:60,D8:75,A9:"No. who sat",A10:"Highest",A11:"Lowest",A12:"Total"},
+ tasks:[
+  {type:"formula",cell:"D9",sol:"=COUNT(D2:D8)",fn:"COUNT",q:{si:"D9 හි 3 වන වාර පරීක්ෂණයට පෙනී සිටි සිසුන් ගණන සොයන්න. (2023 O/L)",en:"In D9, find how many students sat the 3rd term test. (2023 O/L)"},hint:{si:"COUNT ගණන් කරන්නේ සංඛ්‍යා ඇති කෝෂ පමණයි. 'absent' යනු පාඨයකි.",en:"COUNT counts only cells that hold a number. 'absent' is text."},e:{si:"=COUNT(D2:D8) = 5. 'absent' කෝෂ දෙක පාඨ නිසා ගණන් නොවේ.",en:"=COUNT(D2:D8) = 5. The two 'absent' cells are text, so they aren't counted."}},
+  {type:"formula",cell:"B10",sol:"=MAX(B2:B8)",fn:"MAX",q:{si:"B10 හි 1 වන වාරයේ ඉහළම ලකුණ සොයන්න.",en:"In B10, find the highest 1st term mark."},hint:{si:"විශාලතම අගය = MAX.",en:"Largest value = MAX."},e:{si:"=MAX(B2:B8) = 75 (Asjath).",en:"=MAX(B2:B8) = 75 (Asjath)."}},
+  {type:"formula",cell:"C11",sol:"=MIN(C2:C8)",fn:"MIN",q:{si:"C11 හි 2 වන වාරයේ අඩුම ලකුණ සොයන්න.",en:"In C11, find the lowest 2nd term mark."},hint:{si:"කුඩාම අගය = MIN.",en:"Smallest value = MIN."},e:{si:"=MIN(C2:C8) = 35 (MalRaj).",en:"=MIN(C2:C8) = 35 (MalRaj)."}},
+  {type:"formula",cell:"B12",sol:"=SUM(B2:B8)",fn:"SUM",q:{si:"B12 හි 1 වන වාරයේ සියලුම ලකුණුවල එකතුව සොයන්න.",en:"In B12, find the total of all the 1st term marks."},hint:{si:"එකතුව = SUM, පරාසය B2:B8.",en:"Total = SUM, with the range B2:B8."},e:{si:"=SUM(B2:B8) = 363.",en:"=SUM(B2:B8) = 363."}},
+  {type:"formula",cell:"E2",sol:"=AVERAGE(B2:D2)",fn:"AVERAGE",q:{si:"E2 හි ශනායාගේ වාර පරීක්ෂණ තුනේ සාමාන්‍යය ශ්‍රිතයක් භාවිතයෙන් සොයන්න. (2023 O/L)",en:"In E2, use a function to find Shanaya's average for the three term tests. (2023 O/L)"},hint:{si:"AVERAGE සමග B2:D2 පරාසය භාවිත කරන්න.",en:"Use AVERAGE with the range B2:D2."},e:{si:"=AVERAGE(B2:D2) = (57+70)/2 = 63.5. AVERAGE පාඨය ('absent') මඟ හරී.",en:"=AVERAGE(B2:D2) = (57+70)/2 = 63.5. AVERAGE skips the text 'absent'."}},
+  {type:"choose",o:["=AVERAGE(B1:D4)","=AVERAGE(B1:B4, D1:D4)","=AVERAGE(B1:B4:D1:D4)","=AVERAGE(B1:B4 + D1:D4)"],a:1,code:true,
+   q:{si:"B1:B4 සහ D1:D4 හි සාමාන්‍යය නිවැරදිව ගණනය කරන සූත්‍රය කුමක් ද? (2025 O/L)",en:"Which formula correctly calculates the average of B1:B4 and D1:D4? (2025 O/L)"},hint:{si:"පරාස දෙකක් වෙන් කරන්නේ කුමකින් ද?",en:"What separates two ranges?"},e:{si:"පරාස දෙකක් කොමාවෙන් වෙන් කරයි. B1:D4 නම් C තීරුවත් ඇතුළත් වේ.",en:"Two ranges are separated by a comma. B1:D4 would also include column C."}}]},
+{id:"m5",tab:{si:"$ යොමු",en:"$ copy"},title:{si:"පිටපත් කළ විට වෙනස් වන දේ",en:"What moves when you copy"},cols:6,rows:16,wide:["A"],
+ data:Object.assign({A1:{v:"MONTHLY ELECTRICITY BILL CALCULATOR",cls:"spill b"},D12:{v:"Total units",cls:"r"},D13:{v:"Average units",cls:"r"}},elec),
+ tasks:[
+  {type:"formula",cell:"E5",sol:"=C5*$B$3",check:["E6","E7","E8","E9","E10"],fill:["E6","E7","E8","E9","E10"],q:{si:"E5 හි මුළු බිල (ඒකක × ඒකකයක මිල) ගණනය කරන සූත්‍රයක් ලියන්න. එය E6:E10 ට පහළට පිටපත් කළ විටත් ක්‍රියා කළ යුතුයි. (2025 O/L)",en:"In E5, write a formula for the total bill (Units × Cost per unit). It must still work when copied down to E6:E10. (2025 O/L)"},hint:{si:"ඒකක පේළියෙන් පේළියට වෙනස් වේ, නමුත් ඒකකයක මිල සැමවිටම B3 හි ඇත. එය $ මගින් අගුළු දමන්න: $B$3.",en:"The units change row by row, but the cost per unit always stays in B3. Lock it with $: $B$3."},e:{si:"=C5*$B$3. පහළට පිටපත් කළ විට C5 → C6, C7… වේ, නමුත් $B$3 වෙනස් නොවේ.",en:"=C5*$B$3. Copied down, C5 becomes C6, C7… but $B$3 stays."}},
+  {type:"formula",cell:"E12",sol:"=SUM(C5:C10)",fn:"SUM",q:{si:"E12 හි භාවිත කළ මුළු ඒකක ගණන ශ්‍රිතයක් මගින් සොයන්න.",en:"In E12, use a function to find the total units used."},hint:{si:"ඒකක ඇත්තේ C5:C10 හි.",en:"The units are in C5:C10."},e:{si:"=SUM(C5:C10) = 490.",en:"=SUM(C5:C10) = 490."}},
+  {type:"formula",cell:"E13",sol:"=AVERAGE(C5:C10)",fn:"AVERAGE",q:{si:"E13 හි සාමාන්‍ය ඒකක ගණන ශ්‍රිතයක් මගින් සොයන්න.",en:"In E13, use a function to find the average units used."},hint:{si:"AVERAGE(C5:C10).",en:"AVERAGE(C5:C10)."},e:{si:"490 / 6 = 81.67. 0 ද ගණන් ගනී.",en:"490 / 6 = 81.67. The 0 counts too."}},
+  {type:"copy",from:"B15",f:"=C5*2+D$5+$F5",to:"C15",q:{si:"B15 හි =C5*2+D$5+$F5 ඇත. එය C15 ට පිටපත් කළ විට C15 හි පෙනෙන සූත්‍රය කුමක් ද? (2025 O/L)",en:"B15 holds =C5*2+D$5+$F5. It is copied to C15. What formula appears in C15? (2025 O/L)"},hint:{si:"එක් තීරුවක් දකුණට: $ නැති අකුරු එකකින් ඉදිරියට යයි. පේළි වෙනස් නොවේ.",en:"One column right: letters without $ move on by one. The rows don't change."},e:{si:"C→D, D→E, නමුත් $F වෙනස් නොවේ: =D5*2+E$5+$F5.",en:"C→D and D→E, but $F stays: =D5*2+E$5+$F5."}},
+  {type:"copy",from:"B15",f:"=C5*2+D$5+$F5",to:"B16",q:{si:"දැන් එම B15 සූත්‍රය B16 ට පිටපත් කරයි. B16 හි පෙනෙන්නේ කුමක් ද?",en:"Now the same formula in B15 is copied to B16. What appears in B16?"},hint:{si:"එක් පේළියක් පහළට: $ නැති අංක 1කින් වැඩි වේ.",en:"One row down: numbers without $ go up by one."},e:{si:"5 → 6, නමුත් D$5 හි 5 වෙනස් නොවේ: =C6*2+D$5+$F6.",en:"5 becomes 6, but D$5 keeps row 5: =C6*2+D$5+$F6."}},
+  {type:"copy",from:"C2",f:"=$A2+B$2",to:"D3",q:{si:"C2 හි =$A2+B$2 ඇත. එය D3 ට පිටපත් කළ විට පෙනෙන සූත්‍රය කුමක් ද?",en:"C2 holds =$A2+B$2. It is copied to D3. What formula appears?"},hint:{si:"තීරු එකක් දකුණට සහ පේළි එකක් පහළට.",en:"One column right and one row down."},e:{si:"$A වෙනස් නොවේ, B→C. පේළිය 2→3, නමුත් B$2 හි 2 වෙනස් නොවේ: =$A3+C$2.",en:"$A stays and B→C. Row 2→3, but B$2 keeps row 2: =$A3+C$2."}}]},
+{id:"m6",tab:{si:"ප්‍රස්තාර",en:"Charts"},title:{si:"ප්‍රස්තාර සහ හැඩගැන්වීම",en:"Charts and formatting"},cols:5,rows:13,wide:["A","B"],
+ merge:{A1:5},
+ data:{A1:{v:"MONTHLY ELECTRICITY BILL CALCULATOR",cls:"c b"},A3:"Cost per Unit (Rs.)",B3:{v:20,cls:"r"},A4:"S.N.",B4:"HouseHold No",C4:{v:"Units Used (kWh)",cls:"wrap"},D4:{v:"Percentage of Units",cls:"wrap"},E4:"Total Bill (Rs.)",
+  A5:{v:"1",cls:"c"},B5:"0003990",C5:80,D5:{v:"16%",cls:"r"},E5:{v:"1,600.00",cls:"r"},A6:{v:"2",cls:"c"},B6:"0003991",C6:120,D6:{v:"24%",cls:"r"},E6:{v:"2,400.00",cls:"r"},
+  A7:{v:"3",cls:"c"},B7:"0003992",C7:30,D7:{v:"6%",cls:"r"},E7:{v:"600.00",cls:"r"},A8:{v:"4",cls:"c"},B8:"0003993",C8:200,D8:{v:"41%",cls:"r"},E8:{v:"4,000.00",cls:"r"},
+  A9:{v:"5",cls:"c"},B9:"0003994",C9:0,D9:{v:"0%",cls:"r"},E9:{v:"0.00",cls:"r"},A10:{v:"6",cls:"c"},B10:"0003995",C10:60,D10:{v:"12%",cls:"r"},E10:{v:"1,200.00",cls:"r"},
+  C12:"Total Consumption (Units)",E12:{v:"490",cls:"r"},C13:"Average Electricity Consumption",E13:{v:"81.67",cls:"r"}},
+ tasks:[
+  {type:"choose",o:[{icon:"column",t:{si:"ස්තම්භ ප්‍රස්තාරය",en:"Column chart"}},{icon:"pie",t:{si:"වට ප්‍රස්තාරය",en:"Pie chart"}}],a:0,
+   q:{si:"විෂය හයක ලකුණු, වසර පහක් පුරා එකම ප්‍රස්තාරයක සංසන්දනය කිරීමට අවශ්‍ය ය. සුදුසු ප්‍රස්තාරය කුමක් ද?",en:"You want to compare the marks of six subjects over five years on one chart. Which chart fits?"},hint:{si:"වට ප්‍රස්තාරයකට පෙන්විය හැක්කේ එක් දත්ත ශ්‍රේණියක් පමණයි.",en:"A pie can only show one series."},e:{si:"වසර කිහිපයක් පුරා කාණ්ඩ කිහිපයක් → ස්තම්භ (හෝ රේඛා) ප්‍රස්තාරය.",en:"Several categories over several years → a column (or line) chart."}},
+  {type:"choose",o:[{icon:"column",t:{si:"ස්තම්භ ප්‍රස්තාරය",en:"Column chart"}},{icon:"pie",t:{si:"වට ප්‍රස්තාරය",en:"Pie chart"}}],a:1,
+   q:{si:"එක් සිසුවෙකුගේ මුළු ලකුණු විෂය අනුව ප්‍රතිශත ලෙස බෙදා පෙන්වීමට අවශ්‍ය ය.",en:"You want to show one student's total, split by subject as percentages."},hint:{si:"එක් සම්පූර්ණයක කොටස්.",en:"Parts of one whole."},e:{si:"එක් සම්පූර්ණයක කොටස් ප්‍රතිශත ලෙස → වට ප්‍රස්තාරය.",en:"Parts of one total as percentages → a pie chart."}},
+  {type:"choose",o:[{icon:"line",t:{si:"රේඛා ප්‍රස්තාරය",en:"Line chart"}},{icon:"pie",t:{si:"වට ප්‍රස්තාරය",en:"Pie chart"}},{icon:"bar",t:{si:"තීරු (bar) ප්‍රස්තාරය",en:"Bar chart"}}],a:0,
+   q:{si:"2010 සිට 2021 දක්වා සූර්ය බලශක්ති නිෂ්පාදනය වෙනස් වූ ආකාරය පෙන්වීමට සුදුසු ප්‍රස්තාරය කුමක් ද? (2022 O/L)",en:"Which chart best shows how solar power generation changed from 2010 to 2021? (2022 O/L)"},hint:{si:"කාලයත් සමග වෙනස් වීම.",en:"Change over time."},e:{si:"වසර පුරා වෙනස් වීම → රේඛා ප්‍රස්තාරය.",en:"Change across years → a line chart."}},
+  {type:"choose",o:["Percentage","Currency","Merge & Center","Wrap Text"],a:0,q:{si:"පත්‍රය බලන්න: D5 හි 16% පෙනේ. භාවිත කළ හැඩගැන්වීම කුමක් ද? (2025 O/L)",en:"Look at the sheet: D5 shows 16%. Which formatting option was used? (2025 O/L)"},hint:{si:"% ලකුණ.",en:"The % sign."},e:{si:"Percentage හැඩගැන්වීම 0.16 → 16% ලෙස පෙන්වයි.",en:"The Percentage format shows 0.16 as 16%."}},
+  {type:"choose",o:["Wrap Text","Merge & Center","Decimal places","Percentage"],a:1,q:{si:"A1 හි මාතෘකාව A සිට E දක්වා තීරු හරහා මැදට ගෙන ඇත. භාවිත කළ විකල්පය කුමක් ද?",en:"The title in A1 runs across columns A to E and is centred. Which option was used?"},hint:{si:"කෝෂ කිහිපයක් එකට එකතු කර මැදට.",en:"Joins cells together and centres."},e:{si:"Merge & Center කෝෂ එකට එකතු කර පාඨය මැදට ගෙන එයි.",en:"Merge & Center joins the cells and centres the text."}},
+  {type:"choose",o:["Merge & Center","Thousands separator","Wrap Text","Date"],a:2,q:{si:"C4 හි ශීර්ෂය එකම කෝෂයක් තුළ පේළි දෙකකට ඇත. භාවිත කළ විකල්පය කුමක් ද?",en:"The heading in C4 sits on two lines inside one cell. Which option was used?"},hint:{si:"එක් කෝෂයක් තුළ පේළි කිහිපයක්.",en:"Several lines inside one cell."},e:{si:"Wrap Text දිගු පාඨය කෝෂය තුළම පේළි කිහිපයකට කඩයි.",en:"Wrap Text breaks long text onto several lines inside the cell."}},
+  {type:"choose",o:[{si:"Percentage හැඩගැන්වීම භාවිතය",en:"Use the Percentage format"},{si:"ටයිප් කිරීමට පෙර පරාසය Text ලෙස හැඩගැන්වීම",en:"Format the range as Text before typing"},{si:"Merge & Center භාවිතය",en:"Use Merge & Center"},{si:"දශම ස්ථාන එකතු කිරීම",en:"Add decimal places"}],a:1,
+   q:{si:"0003990 වැනි ගෘහ අංකවල මුල් බිංදු නැති නොවී ඇත. ඒ කෙසේ ද?",en:"Household numbers like 0003990 keep their leading zeros. How?"},hint:{si:"අගයක් ලෙස නම් මුල් 0 නැති වේ.",en:"As a value, leading zeros are dropped."},e:{si:"Text ලෙස හැඩගැන්වූ විට 0003990 ටයිප් කළ ආකාරයටම පවතී.",en:"Formatted as Text, 0003990 stays exactly as typed."}},
+  {type:"choose",o:["Google Docs, LibreOffice Writer, Microsoft Excel","Microsoft PowerPoint, Google Sheets, LibreOffice Calc","Google Sheets, Microsoft Excel, OpenOffice Calc","LibreOffice Calc, Microsoft Excel, OpenOffice Writer"],a:2,
+   q:{si:"පැතුරුම්පත් මෘදුකාංග පමණක් ඇතුළත් වන්නේ කුමක ද? (2025 O/L)",en:"Which of these contains only spreadsheet software? (2025 O/L)"},hint:{si:"Writer, Docs, PowerPoint පැතුරුම්පත් නොවේ.",en:"Writer, Docs and PowerPoint are not spreadsheets."},e:{si:"Google Sheets, Excel, Calc යනු පැතුරුම්පත් මෘදුකාංගයි.",en:"Google Sheets, Excel and Calc are all spreadsheet software."}},
+  {type:"choose",o:[".mp3 , .mp4",".docx , .pptx",".xlsx , .ods",".exe , .xlsx"],a:2,code:true,
+   q:{si:"දෙකම පැතුරුම්පත් ගොනු දිගු (file extensions) වන යුගලය කුමක් ද?",en:"Which pair are both spreadsheet file extensions?"},hint:{si:"Excel සහ Calc ගොනු.",en:"Excel and Calc files."},e:{si:"Excel → .xlsx, Calc → .ods. .mp3/.mp4 මාධ්‍ය, .exe ක්‍රමලේඛ ගොනු.",en:"Excel saves .xlsx and Calc saves .ods. .mp3 and .mp4 are media files, and .exe is a program."}}]}
+];
+
+/* ================= State ================= */
+const KEY="formulalab-l07-"+LANG;
+let P={name:"",m:{}};
+try{const s=JSON.parse(localStorage.getItem(KEY)||"null");if(s&&typeof s==="object")P=Object.assign(P,s)}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(P))}catch(e){}};
+document.getElementById("appname").textContent=UI.app;
+document.documentElement.lang=LANG;
+const grid=document.getElementById("grid"),panel=document.getElementById("panel"),nb=document.getElementById("nb"),fxv=document.getElementById("fxv");
+let S=null; /* current sheet state */
+
+function who(){document.getElementById("who").innerHTML=P.name?`<span>${esc(P.name)}</span><span>★ ${M.reduce((a,m)=>a+((P.m[m.id]||{}).stars||0),0)} / ${M.length*3}</span>`:""}
+function tabs(active){
+  document.getElementById("tabs").innerHTML=M.map((m,ix)=>{const s=(P.m[m.id]||{}).stars||0;
+    return `<button class="tab${active===ix?" on":""}" data-ix="${ix}" ${P.name?"":"disabled"}>${esc(T(m.tab))}<span class="mini">${[0,1,2].map(k=>`<i class="${k<s?"on":""}"></i>`).join("")}</span></button>`}).join("")+
+    `<button class="tab${active==="r"?" on":""}" data-ix="r" ${P.name?"":"disabled"}>${esc(UI.report)}</button>`;
+  document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{b.dataset.ix==="r"?report():openM(+b.dataset.ix)});
+}
+
+/* sheet: {cols,rows,cells:{A1:{v|f,cls}},merge,wide} */
+function makeSheet(def){const cells={};for(const k in def.data){const d=def.data[k];cells[k]=(d&&typeof d==="object")?Object.assign({},d):{v:d}}
+  return {cols:def.cols,rows:def.rows,cells,merge:def.merge||{},wide:def.wide||[],cur:"A1",selA:null,selB:null,mask:new Set(),marks:{},tgt:null,src:null}}
+const valOf=(a)=>{const c=S.cells[a];if(!c)return null;return c.f!=null?evalF(S.cells,c.f):c.v};
+function drawGrid(){
+  const {cols,rows}=S;let h=`<thead><tr><th class="corner"></th>`;
+  const selR=S.selA&&S.selB?new Set(rangeCells(S.selA,S.selB)):S.selA?new Set([S.selA]):new Set();
+  const cur=split(S.cur);
+  for(let c=0;c<cols;c++)h+=`<th class="${cur&&cur.c===c?"hl":""}">${colName(c)}</th>`;
+  h+=`</tr></thead><tbody>`;
+  const covered=new Set();
+  for(let r=1;r<=rows;r++){h+=`<tr><th class="${cur&&cur.r===r?"hl":""}">${r}</th>`;
+    for(let c=0;c<cols;c++){const a=addr(c,r);if(covered.has(a))continue;
+      const cell=S.cells[a];let txt="",cls=[];
+      if(S.wide.includes(colName(c)))cls.push("wide");
+      if(cell){const v=cell.f!=null?evalF(S.cells,cell.f):cell.v;txt=fmtV(v);
+        if(cell.cls)cls.push(cell.cls);else if(typeof v==="number")cls.push("r");
+        if(cell.f!=null)cls.push("f");if(v instanceof Err)cls.push("err")}
+      if(S.mask.has(a)){txt="?";cls.push("mask")}
+      if(selR.has(a))cls.push("insel");if(S.cur===a)cls.push("cur");
+      if(S.tgt===a)cls.push("tgt");if(S.src===a)cls.push("src");if(S.marks[a])cls.push(S.marks[a]);
+      const span=S.merge[a]||1;for(let k=1;k<span;k++)covered.add(addr(c+k,r));
+      h+=`<td data-a="${a}" class="${cls.join(" ")}"${span>1?` colspan="${span}"`:""}>${esc(txt)}</td>`}
+    h+=`</tr>`}
+  grid.innerHTML=h+`</tbody>`;
+  nb.textContent=S.selA&&S.selB&&S.selA!==S.selB?normRange(S.selA,S.selB):S.cur;
+  const c=S.cells[S.cur];fxv.textContent=c?(c.f!=null?c.f:String(c.v)):"";
+}
+function normRange(a,b){const p=split(a),q=split(b);return addr(Math.min(p.c,q.c),Math.min(p.r,q.r))+":"+addr(Math.max(p.c,q.c),Math.max(p.r,q.r))}
+grid.addEventListener("click",e=>{const td=e.target.closest("td[data-a]");if(!td||!S)return;onCell(td.dataset.a)});
+
+/* ================= Welcome ================= */
+function welcome(){
+  S=makeSheet(M[0]);S.cur="B2";drawGrid();who();tabs(-1);
+  panel.innerHTML=`<div class="welcome" style="display:flex;flex-direction:column;gap:12px"><p class="pkicker">${esc(UI.lesson)}</p><h1><em>fx</em> ${esc(UI.app)}</h1>
+   <p>${esc(UI.welcome)}</p><p class="how">${esc(UI.welcome2)}</p>
+   <label for="nm">${esc(UI.nameL)}</label><input class="nm" id="nm" autocomplete="off" placeholder="${esc(UI.nameP)}"><button class="btn pri" id="go" disabled>${esc(UI.start)}</button></div>`;
+  const nm=document.getElementById("nm"),go=document.getElementById("go");
+  nm.oninput=()=>go.disabled=!nm.value.trim();nm.onkeydown=e=>{if(e.key==="Enter"&&nm.value.trim())go.click()};
+  go.onclick=()=>{P.name=nm.value.trim();save();openM(0)};
+  onCell=a=>{S.cur=a;drawGrid()};
+}
+
+/* ================= Missions ================= */
+let MI=0,TI=0,res=[],tries=0,onCell=()=>{},task=null;
+function openM(ix){MI=ix;TI=0;res=[];S=makeSheet(M[ix]);who();tabs(ix);startTask();window.scrollTo({top:0})}
+const icon={column:`<svg width="34" height="26" viewBox="0 0 34 26"><path d="M2 24h30" stroke="#5A6B63" stroke-width="1.5"/><rect x="5" y="12" width="5" height="12" fill="#12704E"/><rect x="13" y="5" width="5" height="19" fill="#E89B0C"/><rect x="21" y="9" width="5" height="15" fill="#1E6FD9"/></svg>`,
+ bar:`<svg width="34" height="26" viewBox="0 0 34 26"><path d="M3 2v22" stroke="#5A6B63" stroke-width="1.5"/><rect x="3" y="4" width="22" height="5" fill="#12704E"/><rect x="3" y="11" width="14" height="5" fill="#E89B0C"/><rect x="3" y="18" width="27" height="5" fill="#1E6FD9"/></svg>`,
+ line:`<svg width="34" height="26" viewBox="0 0 34 26"><path d="M2 24h30" stroke="#5A6B63" stroke-width="1.5"/><polyline points="3,20 10,15 17,17 24,8 31,4" fill="none" stroke="#12704E" stroke-width="2.5"/><g fill="#E89B0C"><circle cx="10" cy="15" r="2"/><circle cx="24" cy="8" r="2"/></g></svg>`,
+ pie:`<svg width="34" height="26" viewBox="0 0 34 26"><circle cx="17" cy="13" r="11" fill="#1E6FD9"/><path d="M17 13V2a11 11 0 0 1 10.5 14.3Z" fill="#12704E"/><path d="M17 13l10.5 3.3A11 11 0 0 1 12 23Z" fill="#E89B0C"/></svg>`};
+const optText=o=>{if(typeof o==="string"&&o.includes("|")){const [s,e]=o.split("|");return LANG==="si"?s:e}return T(o&&o.t?o.t:o)};
+function answerOf(t){
+  if(t.type==="tap"||t.type==="select")return t.ans;
+  if(t.type==="number")return String(t.ans);
+  if(t.type==="predict")return fmtV(evalF(S.cells,t.f));
+  if(t.type==="formula")return t.sol;
+  if(t.type==="copy"){const a=split(t.from),b=split(t.to);return shiftF(t.f,b.r-a.r,b.c-a.c)}
+  if(t.type==="choose")return optText(t.o[t.a]);
+}
+function startTask(){
+  const m=M[MI];task=m.tasks[TI];tries=0;const t=task;
+  S.tgt=null;S.src=null;S.selA=null;S.selB=null;S.marks={};
+  if(t.type==="predict"){S.cells[t.cell]={f:t.f};S.mask.add(t.cell);S.tgt=t.cell;S.cur=t.cell}
+  if(t.type==="formula"){S.tgt=t.cell;S.cur=t.cell}
+  if(t.type==="copy"){S.cells[t.from]={f:t.f};S.src=t.from;S.tgt=t.to;S.mask.add(t.to);S.cur=t.from}
+  drawGrid();
+  const q=t.type==="predict"?UI.predictQ(t.cell)+(t.tag?` (${t.tag})`:""):T(t.q);
+  let body="";
+  if(t.type==="predict")body=`<div class="fchip"><small>${esc(UI.inCell(t.cell))}</small>${esc(t.f)}</div><input class="ans" id="ans" inputmode="decimal" autocomplete="off">`;
+  if(t.type==="number")body=`<input class="ans" id="ans" inputmode="decimal" autocomplete="off">`;
+  if(t.type==="formula"||t.type==="copy"){
+    body=(t.type==="copy"?`<div class="fchip"><small>${esc(UI.inCell(t.from))}</small>${esc(t.f)}</div>`:"")+
+    `<input class="ans" id="ans" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="=">
+    <div class="keys">${["=","$",":",",","(",")","+","-","*","/","^"].map(k=>`<button data-k="${k}">${k}</button>`).join("")}${["SUM(","AVERAGE(","MAX(","MIN(","COUNT("].map(k=>`<button class="fn" data-k="${k}">${k}</button>`).join("")}<button data-k="DEL" aria-label="Delete">⌫</button></div>`}
+  if(t.type==="choose")body=`<div class="opts">${t.o.map((o,k)=>`<button class="opt" data-k="${k}"><span class="k">(${k+1})</span>${o.icon?icon[o.icon]:""}<span>${t.code?`<code>${esc(optText(o))}</code>`:esc(optText(o))}</span></button>`).join("")}</div>`;
+  if(t.type==="tap"||t.type==="select")body=`<p class="how" id="selnow">${esc(UI.nothing)}</p>`;
+  panel.innerHTML=`<p class="pkicker">${esc(UI.taskOf(TI+1,m.tasks.length))}</p><p class="ptitle">${esc(T(m.title))}</p>
+   <div class="tdots">${m.tasks.map((_,k)=>`<i class="${k<res.length?(res[k]?"ok":"miss"):k===TI?"cur":""}"></i>`).join("")}</div>
+   <div class="task"><span class="ttype">${esc(UI.types[t.type])}</span><p class="tq">${esc(q)}</p><p class="how">${esc(UI.how[t.type])}</p>${body}
+    <div class="row"><button class="btn pri" id="chk">${esc(UI.check)}</button></div><div id="fb"></div></div>`;
+  const ans=document.getElementById("ans");let caret=0;
+  if(ans){ans.addEventListener("keydown",e=>{if(e.key==="Enter")check()});ans.addEventListener("keyup",()=>caret=ans.selectionStart);ans.addEventListener("click",()=>caret=ans.selectionStart);ans.addEventListener("input",()=>caret=ans.selectionStart);
+    if(matchMedia("(min-width:901px)").matches)ans.focus()}
+  const insert=s=>{const v=ans.value,p=caret??v.length;ans.value=v.slice(0,p)+s+v.slice(p);caret=p+s.length};
+  panel.querySelectorAll(".keys button").forEach(b=>b.onclick=()=>{if(b.dataset.k==="DEL"){const p=caret??ans.value.length;if(p>0){ans.value=ans.value.slice(0,p-1)+ans.value.slice(p);caret=p-1}}else insert(b.dataset.k)});
+  let pick=null;
+  panel.querySelectorAll(".opt").forEach(b=>b.onclick=()=>{if(b.disabled)return;pick=+b.dataset.k;panel.querySelectorAll(".opt").forEach(x=>x.classList.toggle("on",x===b))});
+  onCell=a=>{
+    if(t.type==="select"){if(!S.selA||S.selB){S.selA=a;S.selB=null}else S.selB=a;S.cur=a;drawGrid();
+      document.getElementById("selnow").textContent=S.selB?normRange(S.selA,S.selB):S.selA;return}
+    S.cur=a;drawGrid();
+    if(t.type==="tap"){document.getElementById("selnow").textContent=a;return}
+    if((t.type==="formula"||t.type==="copy")&&ans&&!ans.disabled){const v=ans.value,p=caret??v.length,before=v.slice(0,p).trim();
+      if(/[=+\-*/^(,:]$/.test(before))insert(a)}
+  };
+  document.getElementById("chk").onclick=check;
+  function check(){
+    const fb=document.getElementById("fb");let ok=false,msg="";
+    if(t.type==="tap"){ok=S.cur===t.ans;msg=UI.picked(S.cur)}
+    if(t.type==="select"){const r=S.selA?(S.selB?normRange(S.selA,S.selB):S.selA):"";ok=r===t.ans;msg=r?UI.picked(r):UI.nothing}
+    if(t.type==="number"||t.type==="predict"){const v=parseFloat(String(ans.value).replace(/,/g,""));const want=t.type==="number"?t.ans:evalF(S.cells,t.f);
+      ok=near(v,want);msg=UI.wrongNum(ans.value||"?")}
+    if(t.type==="copy"){ok=normF(ans.value)===normF(answerOf(t));msg=UI.copyWrong}
+    if(t.type==="choose"){if(pick==null)return;ok=pick===t.a}
+    if(t.type==="formula"){const F=ans.value.trim();
+      if(!F.startsWith("="))msg=UI.needEq;
+      else if(evalF(S.cells,F) instanceof Err&&evalF(S.cells,F).c==="#NAME?")msg=UI.badF;
+      else if(t.fn&&!new RegExp("\\b"+t.fn+"\\s*\\(").test(F.toUpperCase()))msg=UI.needFn(t.fn);
+      else if(t.noNum&&/\d/.test(F.toUpperCase().replace(/\$?[A-Z]{1,3}\$?\d+/g,"")))msg=UI.noNum;
+      else{const base=split(t.cell);ok=true;
+        for(const a of [t.cell,...(t.check||[])]){const p=split(a),dr=p.r-base.r,dc=p.c-base.c;
+          const mine=evalF(S.cells,shiftF(F,dr,dc)),want=evalF(S.cells,shiftF(t.sol,dr,dc));
+          if(!(near(mine,want)||(!(mine instanceof Err)&&mine===want))){ok=false;msg=a===t.cell?UI.gives(a,fmtV(mine)):UI.copyFail(t.cell,a,fmtV(mine));break}}}
+    }
+    tries++;
+    if(ok){finishTask(true,fb);return}
+    if(ans)ans.classList.add("bad");
+    if(t.type==="choose")panel.querySelectorAll(".opt").forEach(x=>{if(+x.dataset.k===pick)x.classList.add("bad")});
+    fb.innerHTML=`<div class="fb no"><b>${esc(UI.no)}</b>${msg?`<span>${esc(msg)}</span>`:""}<span><strong>${esc(UI.hint)}</strong> ${esc(T(t.hint))}</span>${tries>=2?`<button class="btn sec" id="reveal" style="align-self:flex-start;margin-top:4px">${esc(UI.show)}</button>`:""}</div>`;
+    if(ans)setTimeout(()=>ans.classList.remove("bad"),900);
+    const rv=document.getElementById("reveal");if(rv)rv.onclick=()=>finishTask(false,fb);
+  }
+}
+function finishTask(ok,fb){
+  const t=task;res.push(ok&&tries===1);
+  panel.querySelectorAll("#chk,.keys button").forEach(b=>b.disabled=true);
+  const ans=document.getElementById("ans");if(ans){ans.disabled=true;if(ok)ans.classList.add("good")}
+  if(t.type==="choose")panel.querySelectorAll(".opt").forEach(x=>{x.disabled=true;x.classList.remove("on");if(+x.dataset.k===t.a)x.classList.add("good")});
+  /* apply to sheet */
+  if(t.type==="predict")S.mask.delete(t.cell);
+  if(t.type==="copy")S.mask.delete(t.to);
+  if(t.type==="formula"){const F=ok?ans.value.trim().toUpperCase():t.sol;S.cells[t.cell]={f:F};
+    const base=split(t.cell);(t.fill||[]).forEach(a=>{const p=split(a);S.cells[a]={f:shiftF(F,p.r-base.r,p.c-base.c)}});
+    S.marks[t.cell]="good";(t.fill||[]).forEach(a=>S.marks[a]="good")}
+  if(t.type==="tap"&&!ok){S.cur=t.ans}
+  if(t.type==="select"&&!ok){const [a,b]=t.ans.split(":");S.selA=a;S.selB=b}
+  if(t.type==="predict"||t.type==="tap"||t.type==="select")S.marks[t.type==="predict"?t.cell:S.cur]=ok?"good":"";
+  drawGrid();
+  const last=TI+1>=M[MI].tasks.length;
+  const showAns=!ok||t.type==="predict"||t.type==="copy";
+  fb.innerHTML=`<div class="fb ${ok?"ok":"no"}"><b>${esc(ok?UI.ok:UI.answer)}</b>${showAns&&!ok?`<span><code>${esc(answerOf(t))}</code></span>`:""}<span>${esc(T(t.e))}</span></div>
+   <div class="row" style="margin-top:10px"><button class="btn pri" id="nx">${esc(last?UI.finish:UI.next)}</button></div>`;
+  const nx=document.getElementById("nx");nx.focus({preventScroll:true});
+  nx.onclick=()=>{if(last)doneM();else{TI++;startTask()}};
+  document.querySelectorAll(".tdots i")[TI].className=res[TI]?"ok":"miss";
+  if(ok&&tries===1&&!RM)pop();
+}
+function doneM(){
+  const m=M[MI],n=res.filter(Boolean).length,tot=m.tasks.length,f=n/tot,stars=f===1?3:f>=2/3?2:f>=1/3?1:0;
+  const prev=(P.m[m.id]||{}).stars||0;P.m[m.id]={stars:Math.max(prev,stars)};save();who();tabs(MI);
+  S.tgt=null;S.src=null;drawGrid();
+  const nxt=MI+1<M.length?MI+1:null;
+  panel.innerHTML=`<p class="pkicker">${esc(T(m.tab))}</p><p class="ptitle">${esc(UI.done)}</p><span class="stars big">${[0,1,2].map(k=>`<i class="star${k<stars?" on":""}"></i>`).join("")}</span>
+   <p>${esc(UI.first(n,tot))}</p><div class="row">${nxt!=null?`<button class="btn pri" id="nx">${esc(UI.nextSheet)}</button>`:`<button class="btn pri" id="rp">${esc(UI.repH)}</button>`}<button class="btn sec" id="ag">${esc(UI.again)}</button></div>`;
+  if(nxt!=null)document.getElementById("nx").onclick=()=>openM(nxt);else document.getElementById("rp").onclick=report;
+  document.getElementById("ag").onclick=()=>openM(MI);
+  if(stars===3)confetti();
+}
+function report(){
+  tabs("r");who();
+  const data={A1:{v:UI.repSheet,cls:"b"},B1:{v:UI.repStars,cls:"b"}};
+  M.forEach((m,k)=>{data["A"+(k+2)]=T(m.title);data["B"+(k+2)]=(P.m[m.id]||{}).stars||0});
+  data["A"+(M.length+2)]={v:UI.repTotal,cls:"b"};
+  S=makeSheet({cols:3,rows:M.length+3,data,wide:["A"]});S.cells["B"+(M.length+2)]={f:`=SUM(B2:B${M.length+1})`,cls:"r b"};S.cur="B"+(M.length+2);drawGrid();
+  const tot=fmtV(evalF(S.cells,`=SUM(B2:B${M.length+1})`));
+  const txt=`${UI.resT}\n${UI.resName}: ${P.name}\n★ ${tot} / ${M.length*3}\n`+M.map(m=>`${T(m.title)}: ${(P.m[m.id]||{}).stars||0}/3`).join("\n");
+  panel.innerHTML=`<p class="ptitle">${esc(UI.repH)}</p><p class="how">${esc(UI.repNote)}</p><div class="result" id="res">${esc(txt)}</div>
+   <div class="row"><button class="btn pri" id="cp">${esc(UI.copy)}</button></div><p id="cpm" class="how" aria-live="polite"></p>`;
+  onCell=a=>{S.cur=a;drawGrid()};
+  document.getElementById("cp").onclick=()=>{const mm=document.getElementById("cpm");
+    const sel=()=>{const r=document.createRange();r.selectNodeContents(document.getElementById("res"));const s=getSelection();s.removeAllRanges();s.addRange(r);mm.textContent=UI.selected};
+    try{navigator.clipboard.writeText(txt).then(()=>mm.textContent=UI.copied,sel)}catch(e){sel()}};
+}
+function pop(){const c=grid.querySelector("td.good");if(!c||!c.animate)return;c.animate([{transform:"scale(1)"},{transform:"scale(1.08)"},{transform:"scale(1)"}],{duration:320})}
+function confetti(){
+  if(RM)return;
+  const cv=document.getElementById("fx"),x=cv.getContext("2d"),d=devicePixelRatio||1;
+  cv.width=innerWidth*d;cv.height=innerHeight*d;x.setTransform(d,0,0,d,0,0);
+  const cols=["#12704E","#E89B0C","#1E6FD9","#D2443B"];
+  const P2=Array.from({length:110},()=>({x:innerWidth/2+(Math.random()-.5)*160,y:innerHeight*.4,vx:(Math.random()-.5)*15,vy:-Math.random()*13-4,r:Math.random()*6.28,s:5+Math.random()*6,c:cols[Math.floor(Math.random()*4)]}));
+  const t0=performance.now();
+  (function f(t){const k=(t-t0)/1500;x.clearRect(0,0,innerWidth,innerHeight);if(k>=1)return;
+    P2.forEach(p=>{p.vy+=.45;p.x+=p.vx;p.y+=p.vy;p.r+=.2;x.save();x.globalAlpha=1-k;x.translate(p.x,p.y);x.rotate(p.r);x.fillStyle=p.c;x.fillRect(-p.s/2,-p.s/4,p.s,p.s/2);x.restore()});
+    requestAnimationFrame(f)})(t0);
+}
+P.name?openM(0):welcome();
+</script>
+</body>
+</html>
