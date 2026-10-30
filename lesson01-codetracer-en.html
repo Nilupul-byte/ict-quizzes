@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Code Tracer</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@500;700&family=Noto+Sans+Sinhala:wght@400;600;700&display=swap">
+<style>
+/* Layout: an exercise-book page (blue rules, red margin) on a desk. Sticky header with the 15-minute clock.
+   One task per screen; code printed in a ruled box; trace tables drawn like hand-ruled tables. Single light look on purpose. */
+:root{
+  --desk:#2B3A55; --page:#FBFCFF; --rule:#DCE5F4; --margin:#E58A8A; --ink:#1C2541; --muted:#5B6685; --line:#C9D4E8;
+  --navy:#1F3A7A; --navy-d:#152A5A; --hl:#FFE45C; --ok:#1F8F55; --bad:#C8413B; --mid:#C27C0E;
+  --codebg:#F1F4FA;
+  --display:"Unbounded","Noto Sans Sinhala",system-ui,sans-serif;
+  --body:"Atkinson Hyperlegible","Noto Sans Sinhala","Iskoola Pota",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{background:var(--desk)}
+body{margin:0;color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:18px 40px}
+p{margin:0}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid var(--navy);outline-offset:2px}
+.book{max-width:860px;margin:0 auto;background-color:var(--page);background-image:repeating-linear-gradient(to bottom,transparent 0 31px,var(--rule) 31px 32px);
+  border-radius:6px 14px 14px 6px;box-shadow:0 24px 50px -20px rgba(0,0,0,.55),inset 6px 0 0 #E9EEF8;position:relative;overflow:hidden}
+.book::before{content:"";position:absolute;top:0;bottom:0;left:56px;width:2px;background:var(--margin);opacity:.7}
+@media (max-width:560px){.book::before{left:30px}}
+.head{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 18px 12px 74px;background:rgba(251,252,255,.94);backdrop-filter:blur(4px);border-bottom:2px solid var(--line)}
+@media (max-width:560px){.head{padding-left:44px}}
+.brand{font-family:var(--display);font-weight:800;font-size:15px;letter-spacing:.01em}
+.clock{margin-left:auto;font-family:var(--mono);font-weight:700;font-size:18px;background:var(--ink);color:#fff;border-radius:8px;padding:3px 10px;font-variant-numeric:tabular-nums}
+.clock.low{background:var(--bad)}
+.prog{font-family:var(--mono);font-size:14px;color:var(--muted)}
+.bar{height:4px;background:var(--line)} .bar i{display:block;height:100%;background:var(--navy);width:0;transition:width .3s}
+.pagebody{padding:22px 22px 30px 74px;display:flex;flex-direction:column;gap:16px;position:relative}
+@media (max-width:560px){.pagebody{padding:18px 14px 26px 44px}}
+.qnum{position:absolute;left:12px;top:20px;width:34px;text-align:right;font-family:var(--display);font-weight:800;font-size:18px;color:var(--margin)}
+@media (max-width:560px){.qnum{left:0;width:26px;font-size:14px}}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(28px,6vw,46px);line-height:1.05;margin:0;letter-spacing:-.01em;text-wrap:balance}
+h1 span{background:linear-gradient(transparent 58%,var(--hl) 58% 92%,transparent 92%)}
+h2{font-family:var(--display);font-weight:600;font-size:clamp(17px,3vw,20px);line-height:1.45;margin:0}
+.muted{color:var(--muted)}
+.tag{display:inline-flex;align-self:flex-start;font-family:var(--mono);font-size:12.5px;font-weight:700;color:var(--navy);border:1.5px solid var(--navy);border-radius:5px;padding:1px 8px}
+.how{font-size:15px;color:var(--muted)}
+.facts{display:flex;gap:8px;flex-wrap:wrap}
+.fact{font-family:var(--mono);font-size:13.5px;font-weight:700;border:1.5px dashed var(--line);border-radius:8px;padding:5px 10px;background:#fff}
+label{font-weight:700}
+input.nm{font:inherit;padding:11px 13px;border:2px solid var(--line);border-radius:8px;background:#fff;max-width:420px;width:100%}
+input.nm:focus{border-color:var(--navy);outline:none}
+.btn{font-family:var(--display);font-weight:600;font-size:15.5px;border-radius:10px;padding:12px 20px;align-self:flex-start}
+.btn.pri{background:var(--navy);color:#fff;box-shadow:0 4px 0 var(--navy-d)}
+.btn.pri:disabled{opacity:.4;cursor:not-allowed}
+.btn.sec{border:2px solid var(--line);background:#fff}
+.btn:active:not(:disabled){transform:translateY(2px)}
+pre.code{margin:0;background:var(--codebg);border:1.5px solid var(--line);border-radius:10px;padding:10px 0;font-family:var(--mono);font-size:15px;line-height:1.75;overflow-x:auto;counter-reset:ln}
+pre.code span.l{display:block;padding:0 14px 0 46px;position:relative;white-space:pre}
+pre.code span.l::before{counter-increment:ln;content:counter(ln);position:absolute;left:0;width:30px;text-align:right;color:#9AA6C0;font-size:12.5px}
+.kw{color:var(--navy);font-weight:700} .bl{background:var(--hl);border-radius:4px;padding:0 4px;font-weight:700}
+.segs,.nums{display:flex;flex-direction:column;gap:10px}
+.srow,.nrow{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:9px 12px}
+.stxt{display:flex;gap:10px;align-items:center;font-weight:700;min-width:0}
+.stxt code,.nrow code{font-family:var(--mono);font-size:15px;font-weight:700}
+.sopts{display:flex;gap:6px;flex-wrap:wrap}
+.sopts button{font-weight:700;font-size:15px;padding:6px 11px;border-radius:8px;border:1.5px solid var(--line);background:var(--page)}
+.sopts button.on{background:var(--navy);border-color:var(--navy);color:#fff}
+.sopts button.good{background:var(--ok);border-color:var(--ok);color:#fff}
+.sopts button.bad{background:var(--bad);border-color:var(--bad);color:#fff}
+.sopts button.miss{border:2px dashed var(--ok);color:var(--ok)}
+.srow.good,.nrow.good{border-color:var(--ok)} .srow.bad,.nrow.bad{border-color:var(--bad)}
+input.n{font-family:var(--mono);font-weight:700;font-size:17px;width:110px;padding:7px 10px;border:2px solid var(--line);border-radius:8px;background:var(--page);text-align:center}
+input.n:focus{border-color:var(--navy);outline:none}
+input.n.good{border-color:var(--ok);color:var(--ok)} input.n.bad{border-color:var(--bad);color:var(--bad)}
+.fix{font-family:var(--mono);font-size:13.5px;color:var(--ok);font-weight:700}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opt{display:flex;gap:10px;align-items:center;text-align:left;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:#fff;font-weight:700}
+.opt .k{font-family:var(--mono);color:var(--muted);flex:none}
+.opt code{font-family:var(--mono)}
+.opt.on{border-color:var(--navy);box-shadow:inset 0 0 0 1.5px var(--navy);background:#EEF2FB}
+.opt.good{border-color:var(--ok);background:#E5F5EC} .opt.bad{border-color:var(--bad);background:#FBE9E8}
+.twrap{overflow-x:auto}
+table.trace{border-collapse:collapse;background:#fff;font-family:var(--mono);font-size:15px;min-width:100%}
+.trace th,.trace td{border:1.5px solid var(--ink);padding:5px 8px;text-align:center}
+.trace th{background:#EEF2FB;font-size:13.5px}
+.trace td.it{font-weight:700;color:var(--muted)}
+.trace input{font-family:var(--mono);font-weight:700;font-size:16px;width:70px;padding:5px;border:1.5px solid var(--line);border-radius:6px;text-align:center;background:var(--page)}
+.trace input.good{border-color:var(--ok);color:var(--ok)} .trace input.bad{border-color:var(--bad);color:var(--bad)}
+.tf{display:inline-flex;gap:4px}
+.tf button{font-family:var(--mono);font-weight:700;font-size:13px;padding:5px 8px;border-radius:6px;border:1.5px solid var(--line);background:var(--page)}
+.tf button.on{background:var(--navy);border-color:var(--navy);color:#fff}
+.tf button.good{background:var(--ok);border-color:var(--ok);color:#fff} .tf button.bad{background:var(--bad);border-color:var(--bad);color:#fff}
+.trace small{display:block;font-size:12px;color:var(--ok)}
+.fb{border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;border:2px solid}
+.fb.ok{border-color:var(--ok);background:#E9F6EF} .fb.part{border-color:var(--mid);background:#FCF3E2} .fb.no{border-color:var(--bad);background:#FBECEB}
+.fb b{font-family:var(--display);font-weight:600;font-size:17px}
+.fb.ok b{color:var(--ok)} .fb.part b{color:var(--mid)} .fb.no b{color:var(--bad)}
+.score{font-family:var(--display);font-weight:800;font-size:clamp(46px,11vw,76px);line-height:1;color:var(--navy)}
+.score small{font-size:.38em;color:var(--muted)}
+.result{font-family:var(--mono);font-size:13.5px;line-height:1.55;background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:12px;white-space:pre-wrap;user-select:all;max-height:380px;overflow:auto}
+ol.rev{margin:0;padding-left:26px;display:flex;flex-direction:column;gap:4px}
+ol.rev .ok{color:var(--ok);font-weight:700} ol.rev .part{color:var(--mid);font-weight:700} ol.rev .bad{color:var(--bad);font-weight:700}
+.stmts{display:flex;flex-direction:column;gap:4px;background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:10px 14px;font-weight:700}
+.stmts code{font-family:var(--mono)}
+.ocode{margin:0;font-family:var(--mono);font-size:13.5px;line-height:1.5;text-align:left}
+.opt{align-items:flex-start}
+.fcwrap{background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:8px;align-self:flex-start;max-width:100%;overflow-x:auto}
+.foot{max-width:860px;margin:12px auto 0;font-size:13px;color:#B9C4DA}
+</style>
+</head>
+<body>
+
+<div class="book">
+  <div class="head"><span class="brand" id="brand"></span><span class="prog" id="prog"></span><span class="clock" id="clock">15:00</span></div>
+  <div class="bar"><i id="barfill"></i></div>
+  <div class="pagebody" id="app"></div>
+</div>
+<p class="foot">Nilupul Weerasinghe · Online O/L ICT · 076 135 5516</p>
+
+<script>
+const LANG="en";
+const T=x=>(x&&typeof x==="object"&&!Array.isArray(x)&&("en" in x))?x[LANG]:x;
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const LIMIT=15*60;
+
+const UIS={
+si:{brand:"කේත ලුහුබැඳුම",title:"කේත <span>ලුහුබැඳුම</span>",sub:"11 ශ්‍රේණිය · පාඩම 01 · ක්‍රමලේඛනය",
+ intro:"විනාඩි 15ක අභ්‍යාසයක්. 2017, 2020, 2021 O/L ප්‍රශ්න ආකෘතියෙන් ප්‍රශ්න 14ක් ඇත: I පත්‍රයේ බහුවරණ 12ක් සහ II පත්‍රයේ ප්‍රශ්න 2ක්. සෑම ප්‍රශ්නයකටම එක් උත්සාහයක් පමණි. අවසානයේ ඔබේ පිළිතුරු copy කර ගුරුතුමාට එවන්න.",
+ facts:["I පත්‍රය: බහුවරණ 12","II පත්‍රය: 2","විනාඩි 15","එක් උත්සාහයයි"],tip:"ලුහුබැඳීමේ වගුව ඔලුවෙන් නොව පියවරෙන් පියවර ලියන්න. වෙලාව ඉවර වුණොත් ඉතිරි ප්‍රශ්න හිස්ව සටහන් වේ.",
+ nameL:"ඔබේ නම",nameP:"උදා: Kavindu",start:"ආරම්භ කරන්න (විනාඩි 15 ආරම්භ වේ)",
+ of:(a,b)=>`${a} / ${b}`,check:"පරීක්ෂා කරන්න",next:"ඊළඟ කාර්යය",finish:"ප්‍රතිඵලය බලන්න",
+ ok:"හරි!",part:"අර්ධ වශයෙන් හරි",bad:"වැරදියි",right:"නිවැරදි:",
+ howSeg:"එක් එක් ලේබලයට ලැයිස්තුවෙන් එක් අයිතමයක් තෝරන්න.",howNum:"එක් එක් පේළියට පිළිතුර ලියන්න.",howChoose:"(1), (2), (3), (4) අතුරින් නිවැරදි පිළිතුර තෝරන්න.",howTrace:"ලූපය වටයෙන් වටයට ලුහුබැඳ වගුව පුරවන්න. කොන්දේසිය සත්‍ය (T) හෝ අසත්‍ය (F) දැයි තෝරන්න.",
+ round:"වටය",timeUp:"කාලය ඉවරයි!",done:"අභ්‍යාසය අවසන්",scoreL:"ලකුණු",timeL:"ගත වූ කාලය",
+ send:"පහත පිළිතුරු පත්‍රය copy කර class chat එකට හෝ ගුරුතුමාට WhatsApp කරන්න.",copy:"පිළිතුරු copy කරන්න",copied:"Copy කළා! දැන් WhatsApp / class chat එකට paste කරන්න.",selected:"Text එක select කළා. Copy කර paste කරන්න.",
+ resT:"ICT පාඩම 01 · ක්‍රමලේඛනය · පිළිතුරු",resName:"නම",resScore:"ලකුණු",resTime:"කාලය",you:"ඔබ",ans:"හරි",blank:"(පිළිතුරු නැත)",review:"කාර්ය අනුව",T:"T",F:"F"},
+en:{brand:"Code Tracer",title:"Code <span>Tracer</span>",sub:"Grade 11 · Lesson 01 · Programming",
+ intro:"A 15-minute practice with 14 questions in the 2017, 2020 and 2021 O/L style: 12 Paper I multiple-choice questions and 2 Paper II questions. You get one try at each. At the end, copy your answers and send them to your teacher.",
+ facts:["Paper I: 12 MCQs","Paper II: 2","15 minutes","One try each"],tip:"Trace step by step on paper, not in your head. If time runs out, the remaining tasks are recorded as blank.",
+ nameL:"Your name",nameP:"e.g. Kavindu",start:"Start (the 15 minutes begin)",
+ of:(a,b)=>`${a} / ${b}`,check:"Check",next:"Next task",finish:"See my results",
+ ok:"Correct!",part:"Partly correct",bad:"Not correct",right:"Correct:",
+ howSeg:"For each label, choose one item from the list.",howNum:"Type the answer for each row.",howChoose:"Choose the correct answer from (1), (2), (3) and (4).",howTrace:"Trace the loop round by round and fill in the table. Choose whether the condition is true (T) or false (F).",
+ round:"Round",timeUp:"Time's up!",done:"Practice finished",scoreL:"Score",timeL:"Time taken",
+ send:"Copy the answer sheet below and send it to your teacher on WhatsApp or the class chat.",copy:"Copy my answers",copied:"Copied! Now paste it in WhatsApp or the class chat.",selected:"Text selected. Copy it and paste it.",
+ resT:"ICT Lesson 01 · Programming · Answers",resName:"Name",resScore:"Score",resTime:"Time",you:"You",ans:"Correct",blank:"(no answer)",review:"Task by task",T:"T",F:"F"}
+};
+const UI=UIS[LANG];
+
+const SHAPE={
+ oval:`<svg width="58" height="30" viewBox="0 0 58 30"><rect x="2" y="3" width="54" height="24" rx="12" fill="#fff" stroke="#1C2541" stroke-width="2"/></svg>`,
+ para:`<svg width="58" height="30" viewBox="0 0 58 30"><path d="M12 3h44l-10 24H2z" fill="#fff" stroke="#1C2541" stroke-width="2"/></svg>`,
+ rect:`<svg width="58" height="30" viewBox="0 0 58 30"><rect x="4" y="3" width="50" height="24" fill="#fff" stroke="#1C2541" stroke-width="2"/></svg>`,
+ diam:`<svg width="58" height="30" viewBox="0 0 58 30"><path d="M29 2l26 13-26 13L3 15z" fill="#fff" stroke="#1C2541" stroke-width="2"/></svg>`};
+
+const FC=(lab)=>`<svg class="fc" width="300" height="400" viewBox="0 0 300 400" role="img" aria-label="flowchart"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#1C2541"/></marker></defs>
+<g fill="#fff" stroke="#1C2541" stroke-width="2"><rect x="95" y="8" width="110" height="30" rx="15"/><rect x="80" y="58" width="140" height="34"/><rect x="80" y="112" width="140" height="34"/><rect x="80" y="166" width="140" height="34"/><path d="M150 220L215 250L150 280L85 250Z"/><path d="M100 305H215L195 339H80Z"/><rect x="95" y="359" width="110" height="30" rx="15"/></g>
+<g stroke="#1C2541" stroke-width="2" fill="none" marker-end="url(#ah)"><path d="M150 38V56"/><path d="M150 92V110"/><path d="M150 146V164"/><path d="M150 200V218"/><path d="M150 280V303"/><path d="M150 339V357"/><path d="M85 250H40V102H148"/></g>
+<g font-family="JetBrains Mono,monospace" font-size="14" text-anchor="middle" fill="#1C2541" font-weight="700"><text x="150" y="28">${lab.start}</text><text x="150" y="80">a = 1, b = 2</text><text x="150" y="134">b = b * a</text><text x="150" y="188">a = a + 1</text><text x="150" y="255">a &gt; 3 ?</text><text x="148" y="327">${lab.out}</text><text x="150" y="379">${lab.end}</text>
+<text x="168" y="298" font-size="12.5">${lab.yes}</text><text x="62" y="242" font-size="12.5">${lab.no}</text></g></svg>`;
+const FCL={si:{start:"ආරම්භය",end:"අවසානය",yes:"ඔව්",no:"නැත",out:"b ප්‍රතිදානය"},en:{start:"Start",end:"End",yes:"Yes",no:"No",out:"Output b"}};
+const ABC=(si,en)=>[{si:"A පමණි",en:"A only"},{si:"A හා B පමණි",en:"A and B only"},{si:"A හා C පමණි",en:"A and C only"},{si:"A, B සහ C සියල්ලම",en:"All A, B and C"}];
+const TASKS=[
+{type:"choose",label:{si:"පාලන ව්‍යුහ",en:"Control structures"},tag:"Paper I · 2021 Q33",
+ q:{si:"ක්‍රමලේඛනයේ පාලන ව්‍යුහ පිළිබඳ පහත ප්‍රකාශ සලකන්න.",en:"Consider the following statements about control structures in programming."},
+ st:[{si:"A – අනුක්‍රමයේ (sequence) දී පියවර එකින් එක ක්‍රියාත්මක වේ.",en:"A – In a sequence, the steps are carried out one after another."},{si:"B – පියවර කිහිපයක් නැවත නැවත ක්‍රියාත්මක කිරීමට වරණය (selection) භාවිත කරයි.",en:"B – Selection is used to carry out a set of steps again and again."},{si:"C – පුනර්කරණය (repetition) යනු පාලන ව්‍යුහයකි.",en:"C – Repetition is a control structure."}],
+ q2:{si:"ඉහත ප්‍රකාශ අතුරින් සත්‍ය වන්නේ කවරක් ද?",en:"Which of the above statements is/are true?"},o:ABC(),a:2,
+ e:{si:"නැවත නැවත කිරීම පුනර්කරණයයි, වරණය නොවේ. ඒ නිසා B අසත්‍යයි. අනුක්‍රමය, වරණය, පුනර්කරණය යනු මූලික පාලන ව්‍යුහ තුනයි.",en:"Doing steps again and again is repetition, not selection, so B is false. Sequence, selection and repetition are the three basic control structures."}},
+{type:"choose",label:{si:"හඳුන්වන නම්",en:"Identifiers"},tag:"Paper I",
+ q:{si:"පහත ඒවායින් වලංගු හඳුන්වන නම් (identifiers) වන්නේ මොනවා ද?",en:"Which of the following are valid identifiers?"},
+ st:["I – Total_Marks","II – 2ndName","III – Num1","IV – First Name"],mono:true,
+ o:[{si:"I හා II පමණි",en:"I and II only"},{si:"I හා III පමණි",en:"I and III only"},{si:"II හා IV පමණි",en:"II and IV only"},{si:"III හා IV පමණි",en:"III and IV only"}],a:1,
+ e:{si:"හඳුන්වන නමක් අකුරකින් ආරම්භ විය යුතුයි, _ අවසරයි. 2ndName ඉලක්කමකින් ආරම්භ වේ. First Name හි හිස්තැනක් ඇත.",en:"An identifier must start with a letter, and _ is allowed. 2ndName starts with a digit and First Name has a space."}},
+{type:"choose",label:{si:"IF – අගය මාරුව",en:"IF – swapping values"},tag:"Paper I · 2017 Q24",
+ q:{si:"පහත ව්‍යාජ කේතය ක්‍රියාත්මක කළ පසු X සහ Y හි අගයන් පිළිවෙළින් කවරේ ද?",en:"After the following pseudocode runs, what are the values of X and Y respectively?"},
+ code:"BEGIN\n  X = 15\n  Y = 25\n  IF X < Y THEN\n    Z = Y\n    Y = X\n    X = Z\n  ENDIF\nEND",
+ o:["15, 25","25, 25","25, 15","15, 15"],a:2,mono:true,
+ e:{si:"15 < 25 සත්‍ය. Z = 25, Y = 15, X = 25. මෙය අගයන් දෙකක් මාරු කිරීමයි (swap).",en:"15 < 25 is true. Z = 25, Y = 15, X = 25. This swaps the two values."}},
+{type:"choose",label:{si:"REPEAT…UNTIL",en:"REPEAT…UNTIL"},tag:"Paper I · 2020 Q37",
+ q:{si:"පහත ව්‍යාජ කේතයේ ප්‍රතිදානය කුමක් ද?",en:"What is the output of the following pseudocode?"},
+ code:"BEGIN\n  count = 4\n  total = 0\n  REPEAT\n    total = total + count * 5\n    count = count - 1\n  UNTIL count > 0\n  DISPLAY total\nEND",
+ o:["20","50","0","30"],a:0,mono:true,
+ e:{si:"පළමු වටයෙන් පසු total = 20, count = 3. 3 > 0 සත්‍ය → නවතී. REPEAT…UNTIL = 'සත්‍ය වන තුරු'. WHILE ලෙස කියෙව්වොත් 50 ලැබේ.",en:"After round 1, total = 20 and count = 3. 3 > 0 is true, so it stops. REPEAT…UNTIL means 'until true'. Reading it as a WHILE gives 50."}},
+{type:"choose",label:{si:"FOR ලූපය",en:"FOR loop"},tag:"Paper I · 2020 Q39",
+ q:{si:"පහත ව්‍යාජ කේතයේ ප්‍රතිදානය කුමක් ද?",en:"What is the output of the following pseudocode?"},
+ code:"BEGIN\n  p = 1\n  FOR i = 1 TO 4\n    p = p * i\n  ENDFOR\n  DISPLAY p\nEND",
+ o:["10","24","120","4"],a:1,mono:true,
+ e:{si:"1 × 1 × 2 × 3 × 4 = 24 (4!).",en:"1 × 1 × 2 × 3 × 4 = 24 (that is 4!)."}},
+{type:"choose",label:{si:"WHILE + IF",en:"WHILE with IF"},tag:"Paper I · 2020 Q40",
+ q:{si:"පහත ව්‍යාජ කේතයේ ප්‍රතිදානය කුමක් ද?",en:"What is the output of the following pseudocode?"},
+ code:"BEGIN\n  n = 20\n  WHILE n > 6 DO\n    IF n MOD 2 = 0 THEN\n      n = n / 2\n    ELSE\n      n = n + 3\n    ENDIF\n  ENDWHILE\n  DISPLAY n\nEND",
+ o:["5","10","8","6"],a:0,mono:true,
+ e:{si:"20 (ඉරට්ටේ) → 10 (ඉරට්ටේ) → 5. 5 > 6 අසත්‍ය → නවතී. ප්‍රතිදානය 5.",en:"20 (even) → 10 (even) → 5. 5 > 6 is false, so it stops. The output is 5."}},
+{type:"choose",label:{si:"WHILE >= උගුල",en:"WHILE >= trap"},tag:"Paper I · 2021 Q36",
+ q:{si:"පහත ව්‍යාජ කේතය ක්‍රියාත්මක කළ විට \"Hello\" දර්ශනය වන වාර ගණන කීය ද?",en:"How many times is \"Hello\" displayed when the following pseudocode runs?"},
+ code:"BEGIN\n  count = 14\n  WHILE count >= 5 DO\n    DISPLAY \"Hello\"\n    count = count - 3\n  ENDWHILE\nEND",
+ o:["3","4","5","14"],a:1,mono:true,
+ e:{si:"count: 14 → 11 → 8 → 5 → 2. 5 >= 5 සත්‍ය නිසා 5 දී ද දර්ශනය වේ. වාර 4. > ලෙස කියෙව්වොත් 3.",en:"count: 14 → 11 → 8 → 5 → 2. 5 >= 5 is true, so it also displays at 5: 4 times. Reading it as > gives 3."}},
+{type:"choose",label:{si:"ගැලීම් සටහන",en:"Flowchart"},tag:"Paper I · 2021 Q34",fc:true,
+ q:{si:"පහත ගැලීම් සටහනේ ප්‍රතිදානය කුමක් ද?",en:"What is the output of the following flowchart?"},
+ o:["4","12","24","6"],a:1,mono:true,
+ e:{si:"b = 2×1 = 2, a = 2 (නැත) → b = 2×2 = 4, a = 3 (3 > 3 නැත) → b = 4×3 = 12, a = 4 (ඔව්) → 12.",en:"b = 2×1 = 2, a = 2 (No) → b = 2×2 = 4, a = 3 (3 > 3 is No) → b = 4×3 = 12, a = 4 (Yes) → 12."}},
+{type:"choose",label:{si:"අරා",en:"Arrays"},tag:"Paper I · 2020 Q38",
+ q:{si:"M නම් අරාවේ අගයන් පහත පරිදි වේ. පළමු දර්ශකය 0 වේ.",en:"An array named M holds the values below. The first index is 0."},
+ code:"M = [10, 20, 30, 40, 50, 60]",
+ st:["A – M[1] + M[3] = 60","B – M[5] = 50","C – M[0] = 10"],
+ q2:{si:"ඉහත ප්‍රකාශ අතුරින් සත්‍ය වන්නේ කවරක් ද?",en:"Which of the above statements is/are true?"},o:ABC(),a:2,
+ e:{si:"M[1] = 20, M[3] = 40 → 60 ✓. M[5] = 60 (50 නොවේ) ✗. M[0] = 10 ✓.",en:"M[1] = 20 and M[3] = 40, so 60 ✓. M[5] = 60, not 50 ✗. M[0] = 10 ✓."}},
+{type:"choose",label:{si:"අරා ප්‍රකාශනය",en:"Array declaration"},tag:"Paper I · 2021 Q37",
+ q:{si:"දර්ශක 1 සිට 10 දක්වා පූර්ණ සංඛ්‍යා 10ක් ගබඩා කරන Marks නම් අරාවක් සඳහා නිවැරදි පැස්කල් ප්‍රකාශනය කුමක් ද?",en:"Which is the correct Pascal declaration of an array named Marks that stores 10 integers, indexed 1 to 10?"},
+ o:["var Marks = array[1..10] integer;","var Marks : array[1-10] of integer;","var Marks : array[1..10] of integer;","var Marks : array[1 to 10] of integer;"],a:2,mono:true,
+ e:{si:"රටාව: නම : array[ආරම්භ..අවසාන] of ප්‍රරූපය; '=' නොව ':', '-' හෝ 'to' නොව '..'.",en:"The pattern is name : array[first..last] of type; It uses ':' not '=', and '..' not '-' or 'to'."}},
+{type:"choose",label:{si:"1 සිට 5 දර්ශනය",en:"Display 1 to 5"},tag:"Paper I · 2017 Q26",
+ q:{si:"1, 2, 3, 4, 5 සංඛ්‍යා පමණක් දර්ශනය කරන්නේ පහත කුමන ව්‍යාජ කේත කොටස ද?",en:"Which of the following pseudocode segments displays only the numbers 1, 2, 3, 4, 5?"},
+ o:["N = 1\nWHILE N < 5 DO\n  DISPLAY N\n  N = N + 1\nENDWHILE","N = 0\nWHILE N < 5 DO\n  N = N + 1\n  DISPLAY N\nENDWHILE","N = 0\nWHILE N < 5 DO\n  DISPLAY N\n  N = N + 1\nENDWHILE","N = 1\nWHILE N <= 5 DO\n  N = N + 1\n  DISPLAY N\nENDWHILE"],a:1,mono:true,
+ e:{si:"(1) → 1–4. (2) → 1–5 ✓. (3) → 0–4. (4) → 2–6. එකතු කර දර්ශනය ද, දර්ශනය කර එකතු ද යන පිළිවෙළ වැදගත්.",en:"(1) shows 1–4, (2) shows 1–5 ✓, (3) shows 0–4 and (4) shows 2–6. The order of 'add then display' matters."}},
+{type:"choose",label:{si:"පරිවර්තක",en:"Translators"},tag:"Paper I · 2020 Q36",
+ q:{si:"ක්‍රමලේඛන භාෂා පිළිබඳ පහත ප්‍රකාශ සලකන්න.",en:"Consider the following statements about programming languages."},
+ st:[{si:"A – සම්පාදකය (compiler) මුළු ක්‍රමලේඛයම එකවර පරිවර්තනය කරයි.",en:"A – A compiler translates the whole program at once."},{si:"B – අර්ථවිනයනය (interpreter) පේළියෙන් පේළිය පරිවර්තනය කර ධාවනය කරයි.",en:"B – An interpreter translates and runs the program line by line."},{si:"C – ඇසෙම්බ්ලි භාෂා ක්‍රමලේඛ යන්ත්‍ර භාෂා ක්‍රමලේඛවලට වඩා වේගයෙන් ධාවනය වේ.",en:"C – Assembly language programs run faster than machine language programs."}],
+ q2:{si:"ඉහත ප්‍රකාශ අතුරින් සත්‍ය වන්නේ කවරක් ද?",en:"Which of the above statements is/are true?"},o:ABC(),a:1,
+ e:{si:"ඇසෙම්බ්ලි ක්‍රමලේඛ යන්ත්‍ර භාෂාවට පරිවර්තනය විය යුතු නිසා වේගවත් නොවේ. C අසත්‍යයි.",en:"Assembly must first be translated into machine language, so it is not faster. C is false."}},
+{type:"seg",label:{si:"II · ලේබල Ⓐ Ⓑ Ⓒ",en:"II · Labels Ⓐ Ⓑ Ⓒ"},tag:"Paper II · 2020 1(viii)",mono:true,
+ q:{si:"1 සිට 11 දක්වා ඔත්තේ සංඛ්‍යාවල එකතුව දර්ශනය කිරීමට පහත ව්‍යාජ කේතය ලියා ඇත. Ⓐ, Ⓑ, Ⓒ ලේබල සඳහා නිවැරදි කොටස ලැයිස්තුවෙන් තෝරන්න.",en:"The pseudocode below should display the sum of the odd numbers from 1 to 11. Choose the correct item from the list for labels Ⓐ, Ⓑ and Ⓒ."},
+ code:"BEGIN\n  num = 1\n  sum = 0\n  WHILE Ⓐ DO\n    sum = Ⓑ\n    num = Ⓒ\n  ENDWHILE\n  DISPLAY sum\nEND",
+ opts:["num <= 11","num > 11","sum + num","sum + 1","num + 1","num + 2"],
+ rows:[{t:"Ⓐ",a:0},{t:"Ⓑ",a:2},{t:"Ⓒ",a:5}],
+ e:{si:"num = 1, 3, 5, 7, 9, 11 → එකතුව 36. num + 1 නම් සියලු සංඛ්‍යා එකතු වේ.",en:"num = 1, 3, 5, 7, 9, 11, so the sum is 36. With num + 1, every number would be added."}},
+{type:"trace",label:{si:"II · ලුහුබැඳීමේ වගුව",en:"II · Trace table"},tag:"Paper II · 2020 7(iii)",
+ q:{si:"පහත ව්‍යාජ කේතය සඳහා ලුහුබැඳීමේ වගුව සම්පූර්ණ කරන්න.",en:"Complete the trace table for the following pseudocode."},
+ code:"BEGIN\n  A[0] = 2\n  k = 1\n  value = 2\n  REPEAT\n    value = value * 3\n    A[k] = value\n    k = k + 1\n  UNTIL k > 3\nEND",
+ cols:[{h:"value"},{h:"A[k]"},{h:{si:"k (පසුව)",en:"k (after)"}},{h:"k > 3 ?",tf:true}],
+ rows:[[6,6,2,"F"],[18,18,3,"F"],[54,54,4,"T"]],
+ e:{si:"value: 2 → 6 → 18 → 54. A[1] = 6, A[2] = 18, A[3] = 54. k = 4 වූ විට k > 3 සත්‍ය → නවතී (වට 3යි).",en:"value: 2 → 6 → 18 → 54, so A[1] = 6, A[2] = 18 and A[3] = 54. When k = 4, k > 3 is true and it stops after 3 rounds."}}
+];
+
+/* ---------------- state ---------------- */
+let name="",i=0,left=LIMIT,tick=null,log=[],t0=0,locked=false,st=null,ended=false;
+const app=document.getElementById("app"),clock=document.getElementById("clock");
+document.getElementById("brand").textContent=UI.brand;document.documentElement.lang=LANG;
+const fmtT=s=>`${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
+const codeHTML=c=>`<pre class="code">${c.split("\n").map(l=>`<span class="l">${esc(l).replace(/\b(REPEAT|UNTIL|WHILE|DO|ENDWHILE|DISPLAY|IF|THEN|ELSE|ENDIF|for|to|downto|do|while|repeat|until)\b/g,'<span class="kw">$1</span>').replace(/([ⒶⒷⒸ])/g,'<span class="bl">$1</span>')||" "}</span>`).join("")}</pre>`;
+const lab=x=>esc(T(x));
+function setProg(){document.getElementById("prog").textContent=name?UI.of(Math.min(i+1,TASKS.length),TASKS.length):"";document.getElementById("barfill").style.width=(log.length/TASKS.length*100)+"%"}
+
+function start(){
+  app.innerHTML=`<h1>${UI.title}</h1><p class="muted" style="font-family:var(--mono);font-size:13.5px">${esc(UI.sub)}</p>
+  <p>${esc(UI.intro)}</p><div class="facts">${UI.facts.map(f=>`<span class="fact">${esc(f)}</span>`).join("")}</div>
+  <p class="how">${esc(UI.tip)}</p>
+  <label for="nm">${esc(UI.nameL)}</label><input class="nm" id="nm" autocomplete="off" placeholder="${esc(UI.nameP)}">
+  <button class="btn pri" id="go" disabled>${esc(UI.start)}</button>`;
+  const nm=document.getElementById("nm"),go=document.getElementById("go");
+  nm.oninput=()=>go.disabled=!nm.value.trim();nm.onkeydown=e=>{if(e.key==="Enter"&&nm.value.trim())go.click()};
+  go.onclick=()=>{name=nm.value.trim();t0=Date.now();left=LIMIT;
+    tick=setInterval(()=>{left=Math.max(0,LIMIT-Math.floor((Date.now()-t0)/1000));clock.textContent=fmtT(left);clock.classList.toggle("low",left<=120);if(left<=0)timeUp()},500);
+    show()};
+}
+function show(){
+  const t=TASKS[i];locked=false;st={sel:{},pick:null};setProg();
+  let body="";
+  if(t.type==="seg")body=`<div class="segs">${t.rows.map((r,k)=>{const opts=t.rowOpts?r.o:t.opts;
+    return `<div class="srow" data-r="${k}"><div class="stxt">${r.svg?SHAPE[r.svg]:""}${r.t!==""?(t.mono||t.rowOpts?`<code>${lab(r.t)}</code>`:`<span>${lab(r.t)}</span>`):""}</div><div class="sopts">${opts.map((o,v)=>`<button data-r="${k}" data-v="${v}">${t.rowOpts?`<code style="font-family:var(--mono)">${lab(o)}</code>`:lab(o)}</button>`).join("")}</div></div>`}).join("")}</div>`;
+  if(t.type==="num")body=`<div class="nums">${t.rows.map((r,k)=>`<div class="nrow" data-r="${k}"><code>${lab(r.t)}</code><span><input class="n" data-r="${k}" inputmode="numeric" autocomplete="off"><span class="fix"></span></span></div>`).join("")}</div>`;
+  if(t.type==="choose")body=`${t.fc?`<div class="fcwrap">${FC(FCL[LANG])}</div>`:""}${t.st?`<div class="stmts">${t.st.map(x=>`<p>${t.mono?`<code>${lab(x)}</code>`:lab(x)}</p>`).join("")}</div>`:""}${t.q2?`<h2>${lab(t.q2)}</h2>`:""}
+   <div class="opts">${t.o.map((o,k)=>`<button class="opt" data-k="${k}"><span class="k">(${k+1})</span>${t.mono&&String(T(o)).includes("\n")?`<pre class="ocode">${esc(T(o))}</pre>`:t.mono?`<code>${lab(o)}</code>`:`<span>${lab(o)}</span>`}</button>`).join("")}</div>`;
+  if(t.type==="trace")body=`<div class="twrap"><table class="trace"><thead><tr><th>${esc(UI.round)}</th>${t.cols.map(c=>`<th>${lab(c.h)}</th>`).join("")}</tr></thead><tbody>${t.rows.map((row,r)=>`<tr><td class="it">${r+1}</td>${t.cols.map((c,ci)=>`<td data-r="${r}" data-c="${ci}">${c.tf?`<span class="tf"><button data-r="${r}" data-c="${ci}" data-v="T">${UI.T}</button><button data-r="${r}" data-c="${ci}" data-v="F">${UI.F}</button></span>`:`<input data-r="${r}" data-c="${ci}" inputmode="numeric" autocomplete="off">`}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+  const how={seg:UI.howSeg,num:UI.howNum,choose:UI.howChoose,trace:UI.howTrace}[t.type];
+  app.innerHTML=`<span class="qnum">${i+1}</span><span class="tag">${esc(t.tag||"")}</span><h2>${lab(t.q)}</h2>${t.code?codeHTML(t.code):""}<p class="how">${esc(how)}</p>${body}
+   <button class="btn pri" id="chk">${esc(UI.check)}</button><div id="fb"></div>`;
+  app.onclick=e=>{const b=e.target.closest("button");if(!b||locked)return;
+    if(b.closest(".sopts")){st.sel[b.dataset.r]=+b.dataset.v;b.parentNode.querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b))}
+    if(b.closest(".tf")){st.sel[b.dataset.r+"_"+b.dataset.c]=b.dataset.v;b.parentNode.querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b))}
+    if(b.classList.contains("opt")){st.pick=+b.dataset.k;app.querySelectorAll(".opt").forEach(x=>x.classList.toggle("on",x===b))}};
+  document.getElementById("chk").onclick=()=>check(false);
+  window.scrollTo({top:0});
+}
+const numIn=v=>{const s=String(v).trim();return s===""?null:Number(s)};
+function check(timeout){
+  if(locked)return;locked=true;const t=TASKS[i];let frac=0,mine=[],right=[];
+  if(t.type==="seg"){let n=0;t.rows.forEach((r,k)=>{const opts=t.rowOpts?r.o:t.opts,v=st.sel[k],ok=v===r.a;if(ok)n++;
+      const row=app.querySelector(`.srow[data-r="${k}"]`);row.classList.add(ok?"good":"bad");
+      row.querySelectorAll("button").forEach(b=>{const bv=+b.dataset.v;b.disabled=true;b.classList.remove("on");if(bv===r.a)b.classList.add(ok?"good":"miss");else if(bv===v)b.classList.add("bad")});
+      const nm=r.t!==""?T(r.t)+"=":(k+1)+"=";mine.push(nm+(v!=null?T(opts[v]):"—"));right.push(nm+T(opts[r.a]))});frac=n/t.rows.length}
+  if(t.type==="num"){let n=0;t.rows.forEach((r,k)=>{const inp=app.querySelector(`input.n[data-r="${k}"]`),v=numIn(inp.value),ok=v===r.a;if(ok)n++;
+      inp.disabled=true;inp.classList.add(ok?"good":"bad");if(!ok)inp.nextElementSibling.textContent=" ✓ "+r.a;app.querySelector(`.nrow[data-r="${k}"]`).classList.add(ok?"good":"bad");
+      mine.push(T(r.t)+"="+(v==null?"—":v));right.push(T(r.t)+"="+r.a)});frac=n/t.rows.length}
+  if(t.type==="choose"){const ok=st.pick===t.a;frac=ok?1:0;
+      app.querySelectorAll(".opt").forEach(b=>{const k=+b.dataset.k;b.disabled=true;b.classList.remove("on");if(k===t.a)b.classList.add("good");else if(k===st.pick)b.classList.add("bad")});
+      mine.push(st.pick==null?"—":"("+(st.pick+1)+")");right.push("("+(t.a+1)+")")}
+  if(t.type==="trace"){let n=0,tot=0;
+      t.rows.forEach((row,r)=>{const rm=[],rr=[];t.cols.forEach((c,ci)=>{tot++;const want=row[ci];let v,ok;
+        if(c.tf){v=st.sel[r+"_"+ci]||null;ok=v===want;app.querySelectorAll(`.tf button[data-r="${r}"][data-c="${ci}"]`).forEach(b=>{b.disabled=true;b.classList.remove("on");if(b.dataset.v===want)b.classList.add(ok?"good":"good");else if(b.dataset.v===v)b.classList.add("bad")})}
+        else{const inp=app.querySelector(`.trace input[data-r="${r}"][data-c="${ci}"]`);v=numIn(inp.value);ok=v===want;inp.disabled=true;inp.classList.add(ok?"good":"bad");
+          if(!ok){const s=document.createElement("small");s.textContent="✓ "+want;inp.parentNode.appendChild(s)}}
+        if(ok)n++;rm.push(v==null?"—":v);rr.push(want)});mine.push("["+rm.join(",")+"]");right.push("["+rr.join(",")+"]")});frac=n/tot}
+  frac=Math.round(frac*100)/100;
+  log.push({frac,mine:mine.join("  "),right:right.join("  "),blank:timeout&&mine.every(m=>/—|\[—/.test(m))});
+  setProg();
+  const c=document.getElementById("chk");if(c)c.remove();
+  if(timeout)return;
+  const cls=frac===1?"ok":frac>0?"part":"no",head=frac===1?UI.ok:frac>0?UI.part:UI.bad;
+  const fb=document.getElementById("fb");const last=i+1>=TASKS.length;
+  fb.innerHTML=`<div class="fb ${cls}"><b>${esc(head)}</b><p>${esc(T(t.e))}</p></div><button class="btn pri" id="nx" style="margin-top:12px">${esc(last?UI.finish:UI.next)}</button>`;
+  fb.scrollIntoView({behavior:"smooth",block:"nearest"});
+  document.getElementById("nx").onclick=()=>{i++;i<TASKS.length?show():finish(false)};
+}
+function timeUp(){if(ended)return;
+  if(!locked&&i<TASKS.length)check(true);
+  for(let k=log.length;k<TASKS.length;k++)log.push({frac:0,mine:UI.blank,right:"",blank:true});
+  finish(true)}
+function finish(timeout){
+  if(ended)return;ended=true;clearInterval(tick);
+  const used=Math.min(LIMIT,Math.floor((Date.now()-t0)/1000));
+  const sum=Math.round(log.reduce((a,b)=>a+b.frac,0)*10)/10,pct=Math.round(sum/TASKS.length*100);
+  i=TASKS.length;setProg();document.getElementById("prog").textContent="";clock.textContent=fmtT(used);clock.classList.remove("low");
+  const mark=f=>f===1?"✓":f>0?"~":"✗";
+  const lines=TASKS.map((t,k)=>{const L=log[k];let s=`${k+1}. ${mark(L.frac)} ${T(t.label)}`;
+    if(L.frac<1){s+=`\n   ${UI.you}: ${L.mine||UI.blank}`;if(L.right)s+=`\n   ${UI.ans}: ${L.right}`}return s});
+  const txt=`${UI.resT}\n${UI.resName}: ${name}\n${UI.resScore}: ${sum} / ${TASKS.length} (${pct}%)\n${UI.resTime}: ${fmtT(used)}${timeout?" ("+UI.timeUp+")":""}\n\n${lines.join("\n")}`;
+  app.innerHTML=`<span class="tag">${esc(timeout?UI.timeUp:UI.done)}</span><h1>${esc(name)}</h1>
+   <p class="score">${sum}<small> / ${TASKS.length} · ${pct}%</small></p><p class="muted">${esc(UI.timeL)}: ${fmtT(used)}</p>
+   <p><b>${esc(UI.send)}</b></p><div class="result" id="res">${esc(txt)}</div>
+   <button class="btn pri" id="cp">${esc(UI.copy)}</button><p id="cpm" class="how" aria-live="polite"></p>
+   <p class="muted" style="font-weight:700">${esc(UI.review)}</p>
+   <ol class="rev">${TASKS.map((t,k)=>{const f=log[k].frac;return `<li><span class="${f===1?"ok":f>0?"part":"bad"}">${mark(f)}</span> ${lab(t.label)}</li>`}).join("")}</ol>`;
+  window.scrollTo({top:0});
+  try{localStorage.setItem("codetracer-l01-"+LANG,txt)}catch(e){}
+  document.getElementById("cp").onclick=()=>{const m=document.getElementById("cpm");
+    const sel=()=>{const r=document.createRange();r.selectNodeContents(document.getElementById("res"));const s=getSelection();s.removeAllRanges();s.addRange(r);m.textContent=UI.selected};
+    try{navigator.clipboard.writeText(txt).then(()=>m.textContent=UI.copied,sel)}catch(e){sel()}};
+}
+start();
+</script>
+</body>
+</html>
