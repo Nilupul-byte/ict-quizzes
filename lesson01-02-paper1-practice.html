@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Paper I Practice</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@500;700&family=Noto+Sans+Sinhala:wght@400;600;700&display=swap">
+<style>
+/* Layout: an exercise-book page (blue rules, red margin) on a desk. Sticky header with the 15-minute clock.
+   One task per screen; code printed in a ruled box; trace tables drawn like hand-ruled tables. Single light look on purpose. */
+:root{
+  --desk:#2B3A55; --page:#FBFCFF; --rule:#DCE5F4; --margin:#E58A8A; --ink:#1C2541; --muted:#5B6685; --line:#C9D4E8;
+  --navy:#1F3A7A; --navy-d:#152A5A; --hl:#FFE45C; --ok:#1F8F55; --bad:#C8413B; --mid:#C27C0E;
+  --codebg:#F1F4FA;
+  --display:"Unbounded","Noto Sans Sinhala",system-ui,sans-serif;
+  --body:"Atkinson Hyperlegible","Noto Sans Sinhala","Iskoola Pota",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{background:var(--desk)}
+body{margin:0;color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:18px 40px}
+p{margin:0}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid var(--navy);outline-offset:2px}
+.book{max-width:860px;margin:0 auto;background-color:var(--page);background-image:repeating-linear-gradient(to bottom,transparent 0 31px,var(--rule) 31px 32px);
+  border-radius:6px 14px 14px 6px;box-shadow:0 24px 50px -20px rgba(0,0,0,.55),inset 6px 0 0 #E9EEF8;position:relative;overflow:hidden}
+.book::before{content:"";position:absolute;top:0;bottom:0;left:56px;width:2px;background:var(--margin);opacity:.7}
+@media (max-width:560px){.book::before{left:30px}}
+.head{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 18px 12px 74px;background:rgba(251,252,255,.94);backdrop-filter:blur(4px);border-bottom:2px solid var(--line)}
+@media (max-width:560px){.head{padding-left:44px}}
+.brand{font-family:var(--display);font-weight:800;font-size:15px;letter-spacing:.01em}
+.clock{margin-left:auto;font-family:var(--mono);font-weight:700;font-size:18px;background:var(--ink);color:#fff;border-radius:8px;padding:3px 10px;font-variant-numeric:tabular-nums}
+.clock.low{background:var(--bad)}
+.prog{font-family:var(--mono);font-size:14px;color:var(--muted)}
+.bar{height:4px;background:var(--line)} .bar i{display:block;height:100%;background:var(--navy);width:0;transition:width .3s}
+.pagebody{padding:22px 22px 30px 74px;display:flex;flex-direction:column;gap:16px;position:relative}
+@media (max-width:560px){.pagebody{padding:18px 14px 26px 44px}}
+.qnum{position:absolute;left:12px;top:20px;width:34px;text-align:right;font-family:var(--display);font-weight:800;font-size:18px;color:var(--margin)}
+@media (max-width:560px){.qnum{left:0;width:26px;font-size:14px}}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(28px,6vw,46px);line-height:1.05;margin:0;letter-spacing:-.01em;text-wrap:balance}
+h1 span{background:linear-gradient(transparent 58%,var(--hl) 58% 92%,transparent 92%)}
+h2{font-family:var(--display);font-weight:600;font-size:clamp(17px,3vw,20px);line-height:1.45;margin:0}
+.muted{color:var(--muted)}
+.tag{display:inline-flex;align-self:flex-start;font-family:var(--mono);font-size:12.5px;font-weight:700;color:var(--navy);border:1.5px solid var(--navy);border-radius:5px;padding:1px 8px}
+.how{font-size:15px;color:var(--muted)}
+.facts{display:flex;gap:8px;flex-wrap:wrap}
+.fact{font-family:var(--mono);font-size:13.5px;font-weight:700;border:1.5px dashed var(--line);border-radius:8px;padding:5px 10px;background:#fff}
+label{font-weight:700}
+input.nm{font:inherit;padding:11px 13px;border:2px solid var(--line);border-radius:8px;background:#fff;max-width:420px;width:100%}
+input.nm:focus{border-color:var(--navy);outline:none}
+.btn{font-family:var(--display);font-weight:600;font-size:15.5px;border-radius:10px;padding:12px 20px;align-self:flex-start}
+.btn.pri{background:var(--navy);color:#fff;box-shadow:0 4px 0 var(--navy-d)}
+.btn.pri:disabled{opacity:.4;cursor:not-allowed}
+.btn.sec{border:2px solid var(--line);background:#fff}
+.btn:active:not(:disabled){transform:translateY(2px)}
+pre.code{margin:0;background:var(--codebg);border:1.5px solid var(--line);border-radius:10px;padding:10px 0;font-family:var(--mono);font-size:15px;line-height:1.75;overflow-x:auto;counter-reset:ln}
+pre.code span.l{display:block;padding:0 14px 0 46px;position:relative;white-space:pre}
+pre.code span.l::before{counter-increment:ln;content:counter(ln);position:absolute;left:0;width:30px;text-align:right;color:#9AA6C0;font-size:12.5px}
+.kw{color:var(--navy);font-weight:700} .bl{background:var(--hl);border-radius:4px;padding:0 4px;font-weight:700}
+.segs,.nums{display:flex;flex-direction:column;gap:10px}
+.srow,.nrow{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:9px 12px}
+.stxt{display:flex;gap:10px;align-items:center;font-weight:700;min-width:0}
+.stxt code,.nrow code{font-family:var(--mono);font-size:15px;font-weight:700}
+.sopts{display:flex;gap:6px;flex-wrap:wrap}
+.sopts button{font-weight:700;font-size:15px;padding:6px 11px;border-radius:8px;border:1.5px solid var(--line);background:var(--page)}
+.sopts button.on{background:var(--navy);border-color:var(--navy);color:#fff}
+.sopts button.good{background:var(--ok);border-color:var(--ok);color:#fff}
+.sopts button.bad{background:var(--bad);border-color:var(--bad);color:#fff}
+.sopts button.miss{border:2px dashed var(--ok);color:var(--ok)}
+.srow.good,.nrow.good{border-color:var(--ok)} .srow.bad,.nrow.bad{border-color:var(--bad)}
+input.n{font-family:var(--mono);font-weight:700;font-size:17px;width:110px;padding:7px 10px;border:2px solid var(--line);border-radius:8px;background:var(--page);text-align:center}
+input.n:focus{border-color:var(--navy);outline:none}
+input.n.good{border-color:var(--ok);color:var(--ok)} input.n.bad{border-color:var(--bad);color:var(--bad)}
+.fix{font-family:var(--mono);font-size:13.5px;color:var(--ok);font-weight:700}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opt{display:flex;gap:10px;align-items:center;text-align:left;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:#fff;font-weight:700}
+.opt .k{font-family:var(--mono);color:var(--muted);flex:none}
+.opt code{font-family:var(--mono)}
+.opt.on{border-color:var(--navy);box-shadow:inset 0 0 0 1.5px var(--navy);background:#EEF2FB}
+.opt.good{border-color:var(--ok);background:#E5F5EC} .opt.bad{border-color:var(--bad);background:#FBE9E8}
+.twrap{overflow-x:auto}
+table.trace{border-collapse:collapse;background:#fff;font-family:var(--mono);font-size:15px;min-width:100%}
+.trace th,.trace td{border:1.5px solid var(--ink);padding:5px 8px;text-align:center}
+.trace th{background:#EEF2FB;font-size:13.5px}
+.trace td.it{font-weight:700;color:var(--muted)}
+.trace input{font-family:var(--mono);font-weight:700;font-size:16px;width:70px;padding:5px;border:1.5px solid var(--line);border-radius:6px;text-align:center;background:var(--page)}
+.trace input.good{border-color:var(--ok);color:var(--ok)} .trace input.bad{border-color:var(--bad);color:var(--bad)}
+.tf{display:inline-flex;gap:4px}
+.tf button{font-family:var(--mono);font-weight:700;font-size:13px;padding:5px 8px;border-radius:6px;border:1.5px solid var(--line);background:var(--page)}
+.tf button.on{background:var(--navy);border-color:var(--navy);color:#fff}
+.tf button.good{background:var(--ok);border-color:var(--ok);color:#fff} .tf button.bad{background:var(--bad);border-color:var(--bad);color:#fff}
+.trace small{display:block;font-size:12px;color:var(--ok)}
+.fb{border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;border:2px solid}
+.fb.ok{border-color:var(--ok);background:#E9F6EF} .fb.part{border-color:var(--mid);background:#FCF3E2} .fb.no{border-color:var(--bad);background:#FBECEB}
+.fb b{font-family:var(--display);font-weight:600;font-size:17px}
+.fb.ok b{color:var(--ok)} .fb.part b{color:var(--mid)} .fb.no b{color:var(--bad)}
+.score{font-family:var(--display);font-weight:800;font-size:clamp(46px,11vw,76px);line-height:1;color:var(--navy)}
+.score small{font-size:.38em;color:var(--muted)}
+.result{font-family:var(--mono);font-size:13.5px;line-height:1.55;background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:12px;white-space:pre-wrap;user-select:all;max-height:380px;overflow:auto}
+ol.rev{margin:0;padding-left:26px;display:flex;flex-direction:column;gap:4px}
+ol.rev .ok{color:var(--ok);font-weight:700} ol.rev .part{color:var(--mid);font-weight:700} ol.rev .bad{color:var(--bad);font-weight:700}
+.stmts{display:flex;flex-direction:column;gap:4px;background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:10px 14px;font-weight:700}
+.stmts code{font-family:var(--mono)}
+.ocode{margin:0;font-family:var(--mono);font-size:13.5px;line-height:1.5;text-align:left}
+.opt{align-items:flex-start}
+.fcwrap{background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:8px;align-self:flex-start;max-width:100%;overflow-x:auto}
+.foot{max-width:860px;margin:12px auto 0;font-size:13px;color:#B9C4DA}
+</style>
+</head>
+<body>
+
+<div class="book">
+  <div class="head"><span class="brand" id="brand"></span><span class="prog" id="prog"></span><span class="clock" id="clock">20:00</span></div>
+  <div class="bar"><i id="barfill"></i></div>
+  <div class="pagebody" id="app"></div>
+</div>
+<p class="foot">Nilupul Weerasinghe · Online O/L ICT · 076 135 5516</p>
+
+<script>
+const LANG="en";
+const T=x=>(x&&typeof x==="object"&&!Array.isArray(x)&&("en" in x))?x[LANG]:x;
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const LIMIT=20*60;
+
+const UIS={
+si:{brand:"කේත ලුහුබැඳුම",title:"කේත <span>ලුහුබැඳුම</span>",sub:"11 ශ්‍රේණිය · පාඩම 01 · ක්‍රමලේඛනය",
+ intro:"විනාඩි 15ක අභ්‍යාසයක්. 2017, 2020, 2021 O/L ප්‍රශ්න ආකෘතියෙන් ප්‍රශ්න 14ක් ඇත: I පත්‍රයේ බහුවරණ 12ක් සහ II පත්‍රයේ ප්‍රශ්න 2ක්. සෑම ප්‍රශ්නයකටම එක් උත්සාහයක් පමණි. අවසානයේ ඔබේ පිළිතුරු copy කර ගුරුතුමාට එවන්න.",
+ facts:["I පත්‍රය: බහුවරණ 12","II පත්‍රය: 2","විනාඩි 15","එක් උත්සාහයයි"],tip:"ලුහුබැඳීමේ වගුව ඔලුවෙන් නොව පියවරෙන් පියවර ලියන්න. වෙලාව ඉවර වුණොත් ඉතිරි ප්‍රශ්න හිස්ව සටහන් වේ.",
+ nameL:"ඔබේ නම",nameP:"උදා: Kavindu",start:"ආරම්භ කරන්න (විනාඩි 15 ආරම්භ වේ)",
+ of:(a,b)=>`${a} / ${b}`,check:"පරීක්ෂා කරන්න",next:"ඊළඟ කාර්යය",finish:"ප්‍රතිඵලය බලන්න",
+ ok:"හරි!",part:"අර්ධ වශයෙන් හරි",bad:"වැරදියි",right:"නිවැරදි:",
+ howSeg:"එක් එක් ලේබලයට ලැයිස්තුවෙන් එක් අයිතමයක් තෝරන්න.",howNum:"එක් එක් පේළියට පිළිතුර ලියන්න.",howChoose:"(1), (2), (3), (4) අතුරින් නිවැරදි පිළිතුර තෝරන්න.",howTrace:"ලූපය වටයෙන් වටයට ලුහුබැඳ වගුව පුරවන්න. කොන්දේසිය සත්‍ය (T) හෝ අසත්‍ය (F) දැයි තෝරන්න.",
+ round:"වටය",timeUp:"කාලය ඉවරයි!",done:"අභ්‍යාසය අවසන්",scoreL:"ලකුණු",timeL:"ගත වූ කාලය",
+ send:"පහත පිළිතුරු පත්‍රය copy කර class chat එකට හෝ ගුරුතුමාට WhatsApp කරන්න.",copy:"පිළිතුරු copy කරන්න",copied:"Copy කළා! දැන් WhatsApp / class chat එකට paste කරන්න.",selected:"Text එක select කළා. Copy කර paste කරන්න.",
+ resT:"ICT පාඩම 01 · ක්‍රමලේඛනය · පිළිතුරු",resName:"නම",resScore:"ලකුණු",resTime:"කාලය",you:"ඔබ",ans:"හරි",blank:"(පිළිතුරු නැත)",review:"කාර්ය අනුව",T:"T",F:"F"},
+en:{brand:"Paper I Practice",title:"Paper I <span>Practice</span>",sub:"Grade 11 · Lesson 01 Programming · Lesson 02 SDLC",
+ intro:"20 multiple-choice questions in the O/L Paper I style, based on the 2018–2025 past papers: 7 from Lesson 01 and 13 from Lesson 02. You have 20 minutes and one try at each question. At the end, copy your answers and send them to your teacher.",
+ facts:["20 MCQs","Lesson 01: 7","Lesson 02: 13","20 minutes"],tip:"For pseudocode and flowcharts, trace on paper step by step. If time runs out, the remaining questions are recorded as blank.",
+ nameL:"Your name",nameP:"e.g. Kavindu",start:"Start (the 20 minutes begin)",
+ of:(a,b)=>`${a} / ${b}`,check:"Check",next:"Next task",finish:"See my results",
+ ok:"Correct!",part:"Partly correct",bad:"Not correct",right:"Correct:",
+ howSeg:"For each label, choose one item from the list.",howNum:"Type the answer for each row.",howChoose:"Choose the correct answer from (1), (2), (3) and (4).",howTrace:"Trace the loop round by round and fill in the table. Choose whether the condition is true (T) or false (F).",
+ round:"Round",timeUp:"Time's up!",done:"Practice finished",scoreL:"Score",timeL:"Time taken",
+ send:"Copy the answer sheet below and send it to your teacher on WhatsApp or the class chat.",copy:"Copy my answers",copied:"Copied! Now paste it in WhatsApp or the class chat.",selected:"Text selected. Copy it and paste it.",
+ resT:"ICT Grade 11 · Lessons 01 & 02 · Paper I practice",resName:"Name",resScore:"Score",resTime:"Time",you:"You",ans:"Correct",blank:"(no answer)",review:"Task by task",T:"T",F:"F"}
+};
+const UI=UIS[LANG];
+
+const SHAPE={
+ oval:`<svg width="58" height="30" viewBox="0 0 58 30"><rect x="2" y="3" width="54" height="24" rx="12" fill="#fff" stroke="#1C2541" stroke-width="2"/></svg>`,
+ para:`<svg width="58" height="30" viewBox="0 0 58 30"><path d="M12 3h44l-10 24H2z" fill="#fff" stroke="#1C2541" stroke-width="2"/></svg>`,
+ rect:`<svg width="58" height="30" viewBox="0 0 58 30"><rect x="4" y="3" width="50" height="24" fill="#fff" stroke="#1C2541" stroke-width="2"/></svg>`,
+ diam:`<svg width="58" height="30" viewBox="0 0 58 30"><path d="M29 2l26 13-26 13L3 15z" fill="#fff" stroke="#1C2541" stroke-width="2"/></svg>`};
+
+const FCSVG=`<svg width="340" height="356" viewBox="0 0 340 356" role="img" aria-label="flowchart"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#1C2541"/></marker></defs>
+<g fill="#fff" stroke="#1C2541" stroke-width="2"><rect x="60" y="4" width="110" height="30" rx="15"/><path d="M75 50H185L165 84H55Z"/><rect x="55" y="100" width="120" height="34"/><path d="M115 180L170 210L115 240L60 210Z"/><rect x="205" y="193" width="125" height="34"/><rect x="205" y="139" width="125" height="34"/><path d="M75 262H180L160 296H55Z"/><rect x="60" y="316" width="110" height="30" rx="15"/></g>
+<g stroke="#1C2541" stroke-width="2" fill="none" marker-end="url(#ah)"><path d="M115 34V48"/><path d="M115 84V98"/><path d="M115 134V178"/><path d="M170 210H203"/><path d="M267 193V175"/><path d="M205 156H117"/><path d="M115 240V260"/><path d="M115 296V314"/></g>
+<g font-family="JetBrains Mono,monospace" font-size="13.5" text-anchor="middle" fill="#1C2541" font-weight="700"><text x="115" y="24">Start</text><text x="120" y="72">Input N</text><text x="115" y="122">S = 0, I = 1</text><text x="115" y="215">I &lt;= N ?</text><text x="267" y="215">S = S + I * I</text><text x="267" y="161">I = I + 1</text><text x="118" y="284">PRINT S</text><text x="115" y="336">Stop</text>
+<text x="186" y="203" font-size="12">Yes</text><text x="134" y="257" font-size="12">No</text></g></svg>`;
+const ABC=["A only","A and B only","A and C only","All A, B and C"];
+const TASKS=[
+/* ---------- Lesson 01 (7) ---------- */
+{type:"choose",label:"L01 · Arrays",tag:"Lesson 01 · like 2022 Q28 / 2021 Q38",
+ q:"The array Marks stores the marks of 8 students. The first index is 0.",code:"Marks:  56 | 72 | 49 | 88 | 91 | 67 | 74 | 80",
+ q2:"Which array element contains the highest mark?",o:["Marks[4]","Marks[3]","Marks[5]","Mark[4]"],a:0,mono:true,
+ e:"91 is the 5th value, but counting from index 0 it is Marks[4]. Mark[4] uses the wrong array name."},
+{type:"choose",label:"L01 · Identifiers",tag:"Lesson 01 · Paper I style",
+ q:"Which of the following are valid identifiers in Pascal?",st:["A – student_name","B – 2ndMark","C – totalMarks","D – end"],mono:true,
+ o:["B and C only","A, C and D only","A and B only","A and C only"],a:3,
+ e:"An identifier starts with a letter and may use _. 2ndMark starts with a digit, and end is a Pascal reserved word."},
+{type:"choose",label:"L01 · Variable vs constant",tag:"Lesson 01 · like 2020 7(i)",
+ q:"Consider the following statements about variables and constants.",
+ st:["A – The value of a constant cannot be changed while the program is running.","B – Both variables and constants have names and take up space in memory.","C – In Pascal, a constant is declared using the keyword var."],
+ q2:"Which of the above statements is/are true?",o:["A and B only","A only","B and C only","All A, B and C"],a:0,
+ e:"Both store values, take up memory and have names. Only a variable's value can change while the program runs. Constants are declared with const, not var, so C is false."},
+{type:"choose",label:"L01 · Pseudocode",tag:"Lesson 01 · like 2025 4(i)",
+ q:"What is the output of the following pseudocode?",
+ code:"BEGIN\n  Counter = 1\n  Total = 0\n  REPEAT\n    Total = Total + Counter\n    DISPLAY Total\n    Counter = Counter + 2\n  UNTIL Total >= 10\nEND",
+ o:["1, 4, 9","1, 3, 5, 7","1, 4, 9, 16","4, 9, 16"],a:2,mono:true,
+ e:"Total: 1 → 4 → 9 (9 >= 10 is false, so it repeats) → 16 (16 >= 10 is true, so it stops). DISPLAY comes before UNTIL, so 16 is shown too."},
+{type:"choose",label:"L01 · Flowchart",tag:"Lesson 01 · like 2025 Q25",svg:true,
+ q:"What will be the output of the following flowchart if the input N is 3?",
+ o:["6","9","14","30"],a:2,mono:true,
+ e:"I = 1: S = 1. I = 2: S = 1 + 4 = 5. I = 3: S = 5 + 9 = 14. Then I = 4, 4 <= 3 is No, so it prints 14."},
+{type:"choose",label:"L01 · Logical expressions",tag:"Lesson 01 · like 2023 Q25 / 2024 Q23",
+ q:"Consider the following logical expressions P, Q and R.",code:"P : (A > 5) AND (B <= 8)\nQ : NOT (A = 7) OR (B > 10)\nR : (A < 3) OR NOT (B = 8)",
+ q2:"If A and B contain the values 7 and 8 respectively, which of the following represents the correct outcomes of P, Q and R respectively?",
+ o:["true, false, false","true, true, false","false, false, true","true, false, true"],a:0,
+ e:"P = true AND true = true. Q = NOT(true) OR false = false. R = false OR NOT(true) = false."},
+{type:"choose",label:"L01 · Operator precedence",tag:"Lesson 01 · like 2023 Q27 / 2024 Q24",
+ q:"What is the result of the following Pascal expression?",code:"18 - 12 div 4 * 2 + 3",
+ o:["5","20","15","9"],a:2,mono:true,
+ e:"div and * come before + and −, working left to right: 12 div 4 = 3, then 3 * 2 = 6. Then 18 − 6 + 3 = 15."},
+/* ---------- Lesson 02 (13) ---------- */
+{type:"choose",label:"L02 · Input / output",tag:"Lesson 02 · like 2019 6(ii) / 2020 6(ii)",
+ q:"A customer inserts a card into an ATM, enters the PIN and the amount Rs. 5000. The system checks the account balance, then gives the cash and prints a receipt.",
+ st:["A – PIN","B – Cash","C – Receipt"],q2:"Which of the above are outputs of this system?",
+ o:["A only","A and B only","B and C only","All A, B and C"],a:2,
+ e:"The PIN is entered, so it is an input. Checking the balance is a process. The cash and the receipt come out, so they are outputs."},
+{type:"choose",label:"L02 · Manual vs computer",tag:"Lesson 02 · like 2019 6(iv)",
+ q:"Which of the following is NOT a benefit of a computer based information system over a manual information system?",
+ o:["Fewer errors, because data is processed by a program","Data is processed faster","Large amounts of data are stored in a small space","There is no need for backups or passwords"],a:3,
+ e:"Remember 1 E + 3 S: Errors, Speed, Storage, Security. Computer systems are kept secure with backups and passwords; they don't remove the need for them."},
+{type:"choose",label:"L02 · SDLC order",tag:"Lesson 02 · like 2020 Q11",
+ q:"Which of the following is the correct order of activities in the System Development Life Cycle (SDLC)?",
+ st:["A – Testing  ·  B – Requirement identification  ·  C – Maintenance","D – Coding  ·  E – Design  ·  F – Deployment"],
+ o:["B, D, E, A, F and C","E, B, D, A, C and F","B, E, A, D, F and C","B, E, D, A, F and C"],a:3,
+ e:"R · D · C · T · D · M: Requirements → Design → Coding → Testing → Deployment → Maintenance."},
+{type:"choose",label:"L02 · Requirement technique",tag:"Lesson 02 · like 2023 Q33",
+ q:"An analyst wants to find out, quickly, the problems faced by 600 students who use the school canteen. Which technique is most suitable?",
+ o:["Interviews","Observation","Questionnaires","Prototyping"],a:2,
+ e:"Many people, collected quickly, means questionnaires. Interviews suit a few people discussed in depth."},
+{type:"choose",label:"L02 · Prototypes",tag:"Lesson 02 · like 2023 1(ix) / 2024 1(viii)",
+ q:"Consider the following statements about prototypes.",
+ st:["A – A prototype is a model of the proposed system shown to users to get their feedback.","B – Prototypes are most productive in the identification of requirements step.","C – A prototype is the final system that is installed for the users."],
+ q2:"Which of the above statements is/are true?",o:ABC,a:1,
+ e:"A prototype is a model (screens, sample records and reports), not the finished system. Both 2023 and 2024 asked which step it suits: identification of requirements."},
+{type:"choose",label:"L02 · Testing order",tag:"Lesson 02 · like 2019 Q25 / 2022 Q35",
+ q:"A complex school management system with many units is being developed. Which of the following lists the types of testing in the correct order?",
+ o:["System testing → unit testing → integration testing → acceptance testing","Acceptance testing → integration testing → unit testing → system testing","Unit testing → integration testing → system testing → acceptance testing","Unit testing → acceptance testing → system testing → integration testing"],a:2,
+ e:"U → I → S → A: piece, joined, whole, customer."},
+{type:"choose",label:"L02 · Testing types",tag:"Lesson 02 · like 2020 6(i)",
+ q:"Ruwan tested only the 'Fee payment' module on its own. Later, Dilini joined the 'Fee payment' and 'Attendance' modules and tested them together. Which types of testing did Ruwan and Dilini do, respectively?",
+ o:["Unit testing, integration testing","Integration testing, system testing","Unit testing, system testing","System testing, acceptance testing"],a:0,
+ e:"One unit on its own is unit testing. Units joined and tested together is integration testing."},
+{type:"choose",label:"L02 · Acceptance testing",tag:"Lesson 02 · like 2025 Q35 / 2023 Q32",
+ q:"Consider the following statements about acceptance testing.",
+ st:["A – It is done by the users to check whether the system meets their requirements.","B – It is the last type of testing.","C – It is done by programmers to find coding errors."],
+ q2:"Which of the above statements is/are true?",o:ABC,a:1,
+ e:"Acceptance testing is done by users, not programmers, and it comes last."},
+{type:"choose",label:"L02 · Deployment matching",tag:"Lesson 02 · like 2018 Q31",
+ q:"Labels A–D show deployment methods and labels P–S give descriptions.",
+ st:["A – Direct  ·  B – Parallel  ·  C – Pilot  ·  D – Phased","P – introduces the system to one branch first, then to all","Q – runs the old and new systems together for a period","R – deploys the system in stages; each successful stage leads to the next","S – stops the old system and starts the new one immediately"],
+ q2:"Which of the following correctly matches A–D with P–S?",
+ o:["A→Q, B→S, C→R, D→P","A→S, B→P, C→Q, D→R","A→S, B→Q, C→P, D→R","A→R, B→Q, C→P, D→S"],a:2,
+ e:"One D and three Ps: Direct = switch at once (S), Parallel = both together (Q), Pilot = one place first (P), Phased = piece by piece (R)."},
+{type:"choose",label:"L02 · Deployment scenario",tag:"Lesson 02 · like 2021 6(ii)(d)",
+ q:"A supermarket chain first introduces its new billing system at its Galle branch only. After it works well there, the system is installed in all branches. Which deployment method is this?",
+ o:["Direct deployment","Parallel deployment","Pilot deployment","Phased deployment"],a:2,
+ e:"A selected place first, then everywhere, is pilot deployment."},
+{type:"choose",label:"L02 · Maintenance",tag:"Lesson 02 · Step 6",
+ q:"Six months after a school marks system went live, a 'Print report card' feature is added because teachers asked for it. Which SDLC step is this, and why is it needed?",
+ o:["Testing, to fix coding errors","Deployment, to install the system","Design, to plan the hardware","Maintenance, to meet new user requirements"],a:3,
+ e:"After the system is in use, changes for new needs, hidden bugs or new technology are maintenance. This one is a new user requirement."},
+{type:"choose",label:"L02 · Waterfall model",tag:"Lesson 02 · like 2018 Q30",
+ q:"Which of the following statements regarding the waterfall model is/are true?",
+ st:["A – The activities of each phase are completed before starting the next phase.","B – The user usually sees the working system only at the final stage.","C – Changes can easily be made after each small cycle."],
+ o:ABC,a:1,
+ e:"Waterfall is linear: water never flows back, and the user sees the result at the end. Small cycles with changes describe the iterative incremental model."},
+{type:"choose",label:"L02 · Choosing a model",tag:"Lesson 02 · like 2025 Q34 / 2021 6(ii)(a)",
+ q:"A telecom company is building a new app. The customers' needs change from month to month and users give regular feedback. Which SDLC model is most suitable, and why?",
+ o:["Waterfall, because the requirements are clear","Iterative incremental, because it allows improvements after each small cycle","Waterfall, because the user sees the system only at the end","Iterative incremental, because it does not need testing"],a:1,
+ e:"Unclear or changing needs and regular feedback point to iterative incremental: small portions, with improvements after each cycle. Every model still needs testing."}
+];
+
+/* ---------------- state ---------------- */
+let name="",i=0,left=LIMIT,tick=null,log=[],t0=0,locked=false,st=null,ended=false;
+const app=document.getElementById("app"),clock=document.getElementById("clock");
+document.getElementById("brand").textContent=UI.brand;document.documentElement.lang=LANG;
+const fmtT=s=>`${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
+const codeHTML=c=>`<pre class="code">${c.split("\n").map(l=>`<span class="l">${esc(l).replace(/\b(REPEAT|UNTIL|WHILE|DO|ENDWHILE|DISPLAY|IF|THEN|ELSE|ENDIF|for|to|downto|do|while|repeat|until)\b/g,'<span class="kw">$1</span>').replace(/([ⒶⒷⒸ])/g,'<span class="bl">$1</span>')||" "}</span>`).join("")}</pre>`;
+const lab=x=>esc(T(x));
+function setProg(){document.getElementById("prog").textContent=name?UI.of(Math.min(i+1,TASKS.length),TASKS.length):"";document.getElementById("barfill").style.width=(log.length/TASKS.length*100)+"%"}
+
+function start(){
+  app.innerHTML=`<h1>${UI.title}</h1><p class="muted" style="font-family:var(--mono);font-size:13.5px">${esc(UI.sub)}</p>
+  <p>${esc(UI.intro)}</p><div class="facts">${UI.facts.map(f=>`<span class="fact">${esc(f)}</span>`).join("")}</div>
+  <p class="how">${esc(UI.tip)}</p>
+  <label for="nm">${esc(UI.nameL)}</label><input class="nm" id="nm" autocomplete="off" placeholder="${esc(UI.nameP)}">
+  <button class="btn pri" id="go" disabled>${esc(UI.start)}</button>`;
+  const nm=document.getElementById("nm"),go=document.getElementById("go");
+  nm.oninput=()=>go.disabled=!nm.value.trim();nm.onkeydown=e=>{if(e.key==="Enter"&&nm.value.trim())go.click()};
+  go.onclick=()=>{name=nm.value.trim();t0=Date.now();left=LIMIT;
+    tick=setInterval(()=>{left=Math.max(0,LIMIT-Math.floor((Date.now()-t0)/1000));clock.textContent=fmtT(left);clock.classList.toggle("low",left<=120);if(left<=0)timeUp()},500);
+    show()};
+}
+function show(){
+  const t=TASKS[i];locked=false;st={sel:{},pick:null};setProg();
+  let body="";
+  if(t.type==="seg")body=`<div class="segs">${t.rows.map((r,k)=>{const opts=t.rowOpts?r.o:t.opts;
+    return `<div class="srow" data-r="${k}"><div class="stxt">${r.svg?SHAPE[r.svg]:""}${r.t!==""?(t.mono||t.rowOpts?`<code>${lab(r.t)}</code>`:`<span>${lab(r.t)}</span>`):""}</div><div class="sopts">${opts.map((o,v)=>`<button data-r="${k}" data-v="${v}">${t.rowOpts?`<code style="font-family:var(--mono)">${lab(o)}</code>`:lab(o)}</button>`).join("")}</div></div>`}).join("")}</div>`;
+  if(t.type==="num")body=`<div class="nums">${t.rows.map((r,k)=>`<div class="nrow" data-r="${k}"><code>${lab(r.t)}</code><span><input class="n" data-r="${k}" inputmode="numeric" autocomplete="off"><span class="fix"></span></span></div>`).join("")}</div>`;
+  if(t.type==="choose")body=`${t.svg?`<div class="fcwrap">${FCSVG}</div>`:""}${t.st?`<div class="stmts">${t.st.map(x=>`<p>${t.mono?`<code>${lab(x)}</code>`:lab(x)}</p>`).join("")}</div>`:""}${t.q2?`<h2>${lab(t.q2)}</h2>`:""}
+   <div class="opts">${t.o.map((o,k)=>`<button class="opt" data-k="${k}"><span class="k">(${k+1})</span>${t.mono&&String(T(o)).includes("\n")?`<pre class="ocode">${esc(T(o))}</pre>`:t.mono?`<code>${lab(o)}</code>`:`<span>${lab(o)}</span>`}</button>`).join("")}</div>`;
+  if(t.type==="trace")body=`<div class="twrap"><table class="trace"><thead><tr><th>${esc(UI.round)}</th>${t.cols.map(c=>`<th>${lab(c.h)}</th>`).join("")}</tr></thead><tbody>${t.rows.map((row,r)=>`<tr><td class="it">${r+1}</td>${t.cols.map((c,ci)=>`<td data-r="${r}" data-c="${ci}">${c.tf?`<span class="tf"><button data-r="${r}" data-c="${ci}" data-v="T">${UI.T}</button><button data-r="${r}" data-c="${ci}" data-v="F">${UI.F}</button></span>`:`<input data-r="${r}" data-c="${ci}" inputmode="numeric" autocomplete="off">`}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+  const how={seg:UI.howSeg,num:UI.howNum,choose:UI.howChoose,trace:UI.howTrace}[t.type];
+  app.innerHTML=`<span class="qnum">${i+1}</span><span class="tag">${esc(t.tag||"")}</span><h2>${lab(t.q)}</h2>${t.code?codeHTML(t.code):""}<p class="how">${esc(how)}</p>${body}
+   <button class="btn pri" id="chk">${esc(UI.check)}</button><div id="fb"></div>`;
+  app.onclick=e=>{const b=e.target.closest("button");if(!b||locked)return;
+    if(b.closest(".sopts")){st.sel[b.dataset.r]=+b.dataset.v;b.parentNode.querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b))}
+    if(b.closest(".tf")){st.sel[b.dataset.r+"_"+b.dataset.c]=b.dataset.v;b.parentNode.querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b))}
+    if(b.classList.contains("opt")){st.pick=+b.dataset.k;app.querySelectorAll(".opt").forEach(x=>x.classList.toggle("on",x===b))}};
+  document.getElementById("chk").onclick=()=>check(false);
+  window.scrollTo({top:0});
+}
+const numIn=v=>{const s=String(v).trim();return s===""?null:Number(s)};
+function check(timeout){
+  if(locked)return;locked=true;const t=TASKS[i];let frac=0,mine=[],right=[];
+  if(t.type==="seg"){let n=0;t.rows.forEach((r,k)=>{const opts=t.rowOpts?r.o:t.opts,v=st.sel[k],ok=v===r.a;if(ok)n++;
+      const row=app.querySelector(`.srow[data-r="${k}"]`);row.classList.add(ok?"good":"bad");
+      row.querySelectorAll("button").forEach(b=>{const bv=+b.dataset.v;b.disabled=true;b.classList.remove("on");if(bv===r.a)b.classList.add(ok?"good":"miss");else if(bv===v)b.classList.add("bad")});
+      const nm=r.t!==""?T(r.t)+"=":(k+1)+"=";mine.push(nm+(v!=null?T(opts[v]):"—"));right.push(nm+T(opts[r.a]))});frac=n/t.rows.length}
+  if(t.type==="num"){let n=0;t.rows.forEach((r,k)=>{const inp=app.querySelector(`input.n[data-r="${k}"]`),v=numIn(inp.value),ok=v===r.a;if(ok)n++;
+      inp.disabled=true;inp.classList.add(ok?"good":"bad");if(!ok)inp.nextElementSibling.textContent=" ✓ "+r.a;app.querySelector(`.nrow[data-r="${k}"]`).classList.add(ok?"good":"bad");
+      mine.push(T(r.t)+"="+(v==null?"—":v));right.push(T(r.t)+"="+r.a)});frac=n/t.rows.length}
+  if(t.type==="choose"){const ok=st.pick===t.a;frac=ok?1:0;
+      app.querySelectorAll(".opt").forEach(b=>{const k=+b.dataset.k;b.disabled=true;b.classList.remove("on");if(k===t.a)b.classList.add("good");else if(k===st.pick)b.classList.add("bad")});
+      mine.push(st.pick==null?"—":"("+(st.pick+1)+")");right.push("("+(t.a+1)+")")}
+  if(t.type==="trace"){let n=0,tot=0;
+      t.rows.forEach((row,r)=>{const rm=[],rr=[];t.cols.forEach((c,ci)=>{tot++;const want=row[ci];let v,ok;
+        if(c.tf){v=st.sel[r+"_"+ci]||null;ok=v===want;app.querySelectorAll(`.tf button[data-r="${r}"][data-c="${ci}"]`).forEach(b=>{b.disabled=true;b.classList.remove("on");if(b.dataset.v===want)b.classList.add(ok?"good":"good");else if(b.dataset.v===v)b.classList.add("bad")})}
+        else{const inp=app.querySelector(`.trace input[data-r="${r}"][data-c="${ci}"]`);v=numIn(inp.value);ok=v===want;inp.disabled=true;inp.classList.add(ok?"good":"bad");
+          if(!ok){const s=document.createElement("small");s.textContent="✓ "+want;inp.parentNode.appendChild(s)}}
+        if(ok)n++;rm.push(v==null?"—":v);rr.push(want)});mine.push("["+rm.join(",")+"]");right.push("["+rr.join(",")+"]")});frac=n/tot}
+  frac=Math.round(frac*100)/100;
+  log.push({frac,mine:mine.join("  "),right:right.join("  "),blank:timeout&&mine.every(m=>/—|\[—/.test(m))});
+  setProg();
+  const c=document.getElementById("chk");if(c)c.remove();
+  if(timeout)return;
+  const cls=frac===1?"ok":frac>0?"part":"no",head=frac===1?UI.ok:frac>0?UI.part:UI.bad;
+  const fb=document.getElementById("fb");const last=i+1>=TASKS.length;
+  fb.innerHTML=`<div class="fb ${cls}"><b>${esc(head)}</b><p>${esc(T(t.e))}</p></div><button class="btn pri" id="nx" style="margin-top:12px">${esc(last?UI.finish:UI.next)}</button>`;
+  fb.scrollIntoView({behavior:"smooth",block:"nearest"});
+  document.getElementById("nx").onclick=()=>{i++;i<TASKS.length?show():finish(false)};
+}
+function timeUp(){if(ended)return;
+  if(!locked&&i<TASKS.length)check(true);
+  for(let k=log.length;k<TASKS.length;k++)log.push({frac:0,mine:UI.blank,right:"",blank:true});
+  finish(true)}
+function finish(timeout){
+  if(ended)return;ended=true;clearInterval(tick);
+  const used=Math.min(LIMIT,Math.floor((Date.now()-t0)/1000));
+  const sum=Math.round(log.reduce((a,b)=>a+b.frac,0)*10)/10,pct=Math.round(sum/TASKS.length*100);
+  i=TASKS.length;setProg();document.getElementById("prog").textContent="";clock.textContent=fmtT(used);clock.classList.remove("low");
+  const mark=f=>f===1?"✓":f>0?"~":"✗";
+  const lines=TASKS.map((t,k)=>{const L=log[k];let s=`${k+1}. ${mark(L.frac)} ${T(t.label)}`;
+    if(L.frac<1){s+=`\n   ${UI.you}: ${L.mine||UI.blank}`;if(L.right)s+=`\n   ${UI.ans}: ${L.right}`}return s});
+  const txt=`${UI.resT}\n${UI.resName}: ${name}\n${UI.resScore}: ${sum} / ${TASKS.length} (${pct}%)\n${UI.resTime}: ${fmtT(used)}${timeout?" ("+UI.timeUp+")":""}\n\n${lines.join("\n")}`;
+  app.innerHTML=`<span class="tag">${esc(timeout?UI.timeUp:UI.done)}</span><h1>${esc(name)}</h1>
+   <p class="score">${sum}<small> / ${TASKS.length} · ${pct}%</small></p><p class="muted">${esc(UI.timeL)}: ${fmtT(used)}</p>
+   <p><b>${esc(UI.send)}</b></p><div class="result" id="res">${esc(txt)}</div>
+   <button class="btn pri" id="cp">${esc(UI.copy)}</button><p id="cpm" class="how" aria-live="polite"></p>
+   <p class="muted" style="font-weight:700">${esc(UI.review)}</p>
+   <ol class="rev">${TASKS.map((t,k)=>{const f=log[k].frac;return `<li><span class="${f===1?"ok":f>0?"part":"bad"}">${mark(f)}</span> ${lab(t.label)}</li>`}).join("")}</ol>`;
+  window.scrollTo({top:0});
+  try{localStorage.setItem("paper1-l01-02-"+LANG,txt)}catch(e){}
+  document.getElementById("cp").onclick=()=>{const m=document.getElementById("cpm");
+    const sel=()=>{const r=document.createRange();r.selectNodeContents(document.getElementById("res"));const s=getSelection();s.removeAllRanges();s.addRange(r);m.textContent=UI.selected};
+    try{navigator.clipboard.writeText(txt).then(()=>m.textContent=UI.copied,sel)}catch(e){sel()}};
+}
+start();
+</script>
+</body>
+</html>
